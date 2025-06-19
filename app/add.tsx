@@ -1,14 +1,28 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, TouchableOpacity, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withSpring,
+  withTiming,
+  withSequence,
+  FadeInDown,
+  FadeInUp,
+  SlideInRight,
+  Layout,
+  Easing,
+} from 'react-native-reanimated';
+
+interface Set {
+  weight: string;
+  reps: string;
+}
 
 interface Exercise {
   name: string;
-  sets: Array<{
-    weight: string;
-    reps: string;
-  }>;
+  sets: Set[];
 }
 
 export default function AddWorkout() {
@@ -16,6 +30,26 @@ export default function AddWorkout() {
   const [exercises, setExercises] = useState<Exercise[]>([
     { name: '', sets: [{ weight: '', reps: '' }] }
   ]);
+
+  // Animation values
+  const titleOpacity = useSharedValue(0);
+  const titleTranslateY = useSharedValue(50);
+  const submitButtonScale = useSharedValue(1);
+
+  // Animate title on mount
+  useEffect(() => {
+    titleOpacity.value = withTiming(1, { duration: 800, easing: Easing.out(Easing.cubic) });
+    titleTranslateY.value = withSpring(0, { damping: 15, stiffness: 100 });
+  }, [titleOpacity, titleTranslateY]);
+
+  const titleAnimatedStyle = useAnimatedStyle(() => ({
+    opacity: titleOpacity.value,
+    transform: [{ translateY: titleTranslateY.value }],
+  }));
+
+  const submitButtonAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: submitButtonScale.value }],
+  }));
 
   const addExercise = () => {
     setExercises([...exercises, { name: '', sets: [{ weight: '', reps: '' }] }]);
@@ -40,17 +74,30 @@ export default function AddWorkout() {
   };
 
   const handleSubmit = () => {
+    // Animate button press
+    submitButtonScale.value = withSequence(
+      withTiming(0.95, { duration: 100 }),
+      withTiming(1, { duration: 100 })
+    );
+    
     // TODO: Handle saving the workout
     console.log({ workoutName, exercises });
   };
 
+  const AnimatedTouchableOpacity = Animated.createAnimatedComponent(TouchableOpacity);
+
   return (
     <SafeAreaView className="flex-1 bg-white">
       <ScrollView className="flex-1 p-4">
-        <Text className="text-2xl font-bold mb-6">Log Workout</Text>
+        <Animated.View style={titleAnimatedStyle}>
+          <Text className="text-2xl font-bold mb-6">Log Workout</Text>
+        </Animated.View>
         
         {/* Workout Name */}
-        <View className="mb-6">
+        <Animated.View 
+          entering={FadeInDown.delay(200).springify()}
+          className="mb-6"
+        >
           <Text className="text-gray-600 mb-2">Workout Name</Text>
           <TextInput
             value={workoutName}
@@ -58,11 +105,16 @@ export default function AddWorkout() {
             placeholder="Enter workout name"
             className="border border-gray-300 rounded-lg p-3"
           />
-        </View>
+        </Animated.View>
 
         {/* Exercises */}
         {exercises.map((exercise, exerciseIndex) => (
-          <View key={exerciseIndex} className="mb-6 p-4 bg-gray-50 rounded-lg">
+          <Animated.View 
+            key={exerciseIndex} 
+            entering={FadeInUp.delay(exerciseIndex * 100).springify()}
+            layout={Layout.springify()}
+            className="mb-6 p-4 bg-gray-50 rounded-lg"
+          >
             <Text className="text-gray-600 mb-2">Exercise Name</Text>
             <TextInput
               value={exercise.name}
@@ -73,7 +125,12 @@ export default function AddWorkout() {
 
             {/* Sets */}
             {exercise.sets.map((set, setIndex) => (
-              <View key={setIndex} className="flex-row mb-4">
+              <Animated.View 
+                key={setIndex} 
+                entering={SlideInRight.delay(setIndex * 50).springify()}
+                layout={Layout.springify()}
+                className="flex-row mb-4"
+              >
                 <View className="flex-1 mr-2">
                   <Text className="text-gray-600 mb-1">Weight (lbs)</Text>
                   <TextInput
@@ -94,36 +151,45 @@ export default function AddWorkout() {
                     className="border border-gray-300 rounded-lg p-3 bg-white"
                   />
                 </View>
-              </View>
+              </Animated.View>
             ))}
 
             {/* Add Set Button */}
             <TouchableOpacity
               onPress={() => addSet(exerciseIndex)}
               className="flex-row items-center justify-center p-3 border border-ut_orange rounded-lg mb-2"
+              activeOpacity={0.7}
             >
               <Ionicons name="add-outline" size={20} color="#bf5700" />
               <Text className="text-ut_orange ml-2">Add Set</Text>
             </TouchableOpacity>
-          </View>
+          </Animated.View>
         ))}
 
         {/* Add Exercise Button */}
         <TouchableOpacity
           onPress={addExercise}
           className="flex-row items-center justify-center p-4 bg-gray-100 rounded-lg mb-6"
+          activeOpacity={0.7}
         >
           <Ionicons name="add-circle-outline" size={24} color="#bf5700" />
           <Text className="text-ut_orange ml-2 font-medium">Add Exercise</Text>
         </TouchableOpacity>
 
         {/* Submit Button */}
-        <TouchableOpacity
-          onPress={handleSubmit}
-          className="bg-ut_orange p-4 rounded-lg mb-6"
+        <Animated.View 
+          entering={FadeInUp.delay(500).springify()}
+          className="mb-6"
         >
-          <Text className="text-white text-center font-bold">Save Workout</Text>
-        </TouchableOpacity>
+          <AnimatedTouchableOpacity
+            style={submitButtonAnimatedStyle}
+            onPress={handleSubmit}
+            className="bg-ut_orange p-4 rounded-lg"
+            activeOpacity={0.8}
+          >
+            <Text className="text-white text-center font-bold">Save Workout</Text>
+          </AnimatedTouchableOpacity>
+        </Animated.View>
       </ScrollView>
     </SafeAreaView>
   );
