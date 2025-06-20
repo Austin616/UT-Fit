@@ -4,13 +4,11 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useNavigation } from 'expo-router';
 import Animated, { 
-  FadeInDown, 
   useSharedValue, 
   useAnimatedStyle, 
   withSpring,
   withTiming,
   Easing,
-  useDerivedValue,
 } from 'react-native-reanimated';
 import { useFocusEffect } from '@react-navigation/native';
 
@@ -56,7 +54,7 @@ export default function AddLanding() {
         quickLogScale.value = 0.8;
         createPostScale.value = 0.8;
       };
-    }, [])
+    }, [ animationProgress, quickLogScale, createPostScale])
   );
 
   const titleStyle = useAnimatedStyle(() => ({
@@ -76,12 +74,6 @@ export default function AddLanding() {
 
   return (
     <SafeAreaView className="flex-1 bg-white" edges={['left', 'right', 'bottom']}>
-      <View className="flex-row items-center px-6 py-4">
-        <TouchableOpacity onPress={() => navigation.goBack()} className="mr-4">
-          <Ionicons name="arrow-back" size={24} color="#000" />
-        </TouchableOpacity>
-      </View>
-
       <View className="flex-1 px-6 justify-center">
         <Animated.View style={titleStyle}>
           <Text className="text-2xl font-bold mb-8 text-center">What would you like to do?</Text>
