@@ -16,6 +16,7 @@ export interface WorkoutState {
   workoutName: string;
   selectedCategory: WorkoutCategory[];
   exercises: Exercise[];
+  duration: string;
 }
 
 export function useWorkout(initialExercises: Exercise[] = [{ 
@@ -26,6 +27,7 @@ export function useWorkout(initialExercises: Exercise[] = [{
   const [workoutName, setWorkoutName] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<WorkoutCategory[]>([]);
   const [exercises, setExercises] = useState<Exercise[]>(initialExercises);
+  const [duration, setDuration] = useState('');
   const [showCategoryPicker, setShowCategoryPicker] = useState(false);
   const [showMuscleGroupPicker, setShowMuscleGroupPicker] = useState(false);
   const [currentExerciseIndex, setCurrentExerciseIndex] = useState<number | null>(null);
@@ -126,6 +128,14 @@ export function useWorkout(initialExercises: Exercise[] = [{
       return { isValid: false, message: 'Please select at least one workout type' };
     }
 
+    if (!duration.trim()) {
+      return { isValid: false, message: 'Please enter workout duration' };
+    }
+
+    if (isNaN(Number(duration)) || Number(duration) <= 0) {
+      return { isValid: false, message: 'Please enter a valid duration in minutes' };
+    }
+
     for (let i = 0; i < exercises.length; i++) {
       const exercise = exercises[i];
       
@@ -150,19 +160,21 @@ export function useWorkout(initialExercises: Exercise[] = [{
     }
 
     return { isValid: true, message: '' };
-  }, [workoutName, selectedCategory, exercises]);
+  }, [workoutName, selectedCategory, exercises, duration]);
 
   return {
     // State
     workoutName,
     selectedCategory,
     exercises,
+    duration,
     showCategoryPicker,
     showMuscleGroupPicker,
     currentExerciseIndex,
 
     // Setters
     setWorkoutName,
+    setDuration,
     setShowCategoryPicker,
     setShowMuscleGroupPicker,
     setCurrentExerciseIndex,

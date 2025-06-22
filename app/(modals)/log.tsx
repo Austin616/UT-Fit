@@ -54,33 +54,39 @@ const SetRow = React.memo(({
     <Animated.View
       entering={FadeInDown.delay(setIndex * 50).springify()}
       layout={Layout.springify()}
-      className="flex-row items-center mb-4 last:mb-0"
+      className="mb-2"
     >
-      <View className="w-8 mr-4">
-        <Text className="text-gray-500 font-medium text-center">{setIndex + 1}</Text>
-      </View>
-      <View className="flex-1 flex-row items-center">
-        <View className="flex-1 mr-2">
-          <TextInput
-            value={set.weight}
-            onChangeText={(text) => onUpdateSet(exerciseIndex, setIndex, 'weight', text)}
-            placeholder="Weight"
-            keyboardType="numeric"
-            className="bg-white border border-gray-200 rounded-lg px-3 py-2 text-center"
-          />
-        </View>
-        <Text className="text-gray-500 mx-2">×</Text>
-        <View className="flex-1 mr-2">
-          <TextInput
-            value={set.reps}
-            onChangeText={(text) => onUpdateSet(exerciseIndex, setIndex, 'reps', text)}
-            placeholder="Reps"
-            keyboardType="numeric"
-            className="bg-white border border-gray-200 rounded-lg px-3 py-2 text-center"
-          />
+      <View className="flex-row items-center">
+        <View className="flex-1 flex-row items-center bg-white rounded-xl p-3">
+          <View className="w-10 h-10 rounded-full bg-ut_orange/10 items-center justify-center">
+            <Text className="text-ut_orange font-semibold">{setIndex + 1}</Text>
+          </View>
+          <View className="flex-1 flex-row gap-3 ml-2">
+            <View className="flex-1">
+              <TextInput
+                value={set.weight}
+                onChangeText={(text) => onUpdateSet(exerciseIndex, setIndex, 'weight', text)}
+                placeholder="0"
+                keyboardType="numeric"
+                className="text-center text-gray-900 text-lg font-medium"
+              />
+              <Text className="text-gray-500 text-xs mt-1 text-center">lbs</Text>
+            </View>
+            <View className="w-0.5 bg-gray-200" />
+            <View className="flex-1">
+              <TextInput
+                value={set.reps}
+                onChangeText={(text) => onUpdateSet(exerciseIndex, setIndex, 'reps', text)}
+                placeholder="0"
+                keyboardType="numeric"
+                className="text-center text-gray-900 text-lg font-medium"
+              />
+              <Text className="text-gray-500 text-xs mt-1 text-center">reps</Text>
+            </View>
+          </View>
         </View>
         {exercise.sets.length > 1 && (
-          <TouchableOpacity 
+          <TouchableOpacity
             onPress={() => onDelete(exerciseIndex, setIndex)}
             className="ml-2 w-8 h-8 rounded-full bg-red-100 items-center justify-center"
           >
@@ -113,6 +119,8 @@ export default function LogWorkout() {
     updateSet,
     updateExerciseName,
     validateWorkout,
+    duration,
+    setDuration,
   } = useWorkout();
 
   // Animation values
@@ -246,6 +254,22 @@ export default function LogWorkout() {
                 onChangeText={setWorkoutName}
                 placeholder="e.g., Morning Push Day"
                 placeholderTextColor="#9CA3AF"
+                className="text-base text-gray-900 border-b border-gray-200 pb-2 px-1"
+              />
+            </Animated.View>
+
+            {/* Duration Input */}
+            <Animated.View 
+              entering={FadeInDown.delay(150).springify()} 
+              className="mb-6 bg-white rounded-2xl p-4 shadow-sm border border-gray-100"
+            >
+              <Text className="text-ut text-lg font-semibold mb-2">Duration (minutes)</Text>
+              <TextInput
+                value={duration}
+                onChangeText={setDuration}
+                placeholder="e.g., 45"
+                placeholderTextColor="#9CA3AF"
+                keyboardType="numeric"
                 className="text-base text-gray-900 border-b border-gray-200 pb-2 px-1"
               />
             </Animated.View>

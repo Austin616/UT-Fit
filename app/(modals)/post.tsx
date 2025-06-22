@@ -34,11 +34,9 @@ export default function PostWorkout() {
     setShowMuscleGroupPicker,
     toggleCategory,
     toggleExerciseMuscleGroup,
-    addSet,
-    deleteSet,
-    updateSet,
-    updateExerciseName,
     validateWorkout,
+    duration,
+    setDuration,
   } = useWorkout();
 
   const [slides, setSlides] = useState<Slide[]>([{
@@ -47,6 +45,56 @@ export default function PostWorkout() {
     exercise: { name: '', sets: [{ weight: '', reps: '' }], muscleGroups: [] }
   }]);
   const [currentSlideIndex, setCurrentSlideIndex] = useState<number | null>(null);
+
+  // Set management functions
+  const handleAddSet = (slideIndex: number) => {
+    setSlides(current => {
+      const newSlides = [...current];
+      newSlides[slideIndex].exercise.sets.push({ weight: '', reps: '' });
+      return newSlides;
+    });
+  };
+
+  const handleDeleteSet = (slideIndex: number, setIndex: number) => {
+    setSlides(current => {
+      const newSlides = [...current];
+      if (newSlides[slideIndex].exercise.sets.length > 1) {
+        newSlides[slideIndex].exercise.sets = newSlides[slideIndex].exercise.sets.filter((_, i) => i !== setIndex);
+      }
+      return newSlides;
+    });
+  };
+
+  const handleUpdateSet = (slideIndex: number, setIndex: number, field: 'weight' | 'reps', value: string) => {
+    setSlides(current => {
+      const newSlides = [...current];
+      newSlides[slideIndex].exercise.sets[setIndex][field] = value;
+      return newSlides;
+    });
+  };
+
+  const handleUpdateExerciseName = (slideIndex: number, name: string) => {
+    setSlides(current => {
+      const newSlides = [...current];
+      newSlides[slideIndex].exercise.name = name;
+      return newSlides;
+    });
+  };
+
+  const handleToggleExerciseMuscleGroup = (slideIndex: number, muscleGroup: MuscleGroup) => {
+    setSlides(current => {
+      const newSlides = [...current];
+      const exercise = newSlides[slideIndex].exercise;
+      
+      if (exercise.muscleGroups.includes(muscleGroup)) {
+        exercise.muscleGroups = exercise.muscleGroups.filter(mg => mg !== muscleGroup);
+      } else {
+        exercise.muscleGroups = [...exercise.muscleGroups, muscleGroup];
+      }
+      
+      return newSlides;
+    });
+  };
 
   const pickImage = async (slideIndex: number) => {
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -138,6 +186,17 @@ export default function PostWorkout() {
               />
             </View>
 
+            {/* Duration Input */}
+            <View className="px-4 mb-6">
+              <TextInput
+                value={duration}
+                onChangeText={setDuration}
+                placeholder="Duration (minutes)"
+                keyboardType="numeric"
+                className="text-lg text-gray-700"
+              />
+            </View>
+
             {/* Workout Type */}
             <View className="px-4">
               <WorkoutTypeSelector
@@ -181,10 +240,10 @@ export default function PostWorkout() {
                   <ExerciseCard
                     exercise={slide.exercise}
                     exerciseIndex={slideIndex}
-                    onUpdateName={(name) => updateExerciseName(slideIndex, name)}
-                    onAddSet={() => addSet(slideIndex)}
-                    onDeleteSet={(setIndex) => deleteSet(slideIndex, setIndex)}
-                    onUpdateSet={(setIndex, field, value) => updateSet(slideIndex, setIndex, field, value)}
+                    onUpdateName={(name) => handleUpdateExerciseName(slideIndex, name)}
+                    onAddSet={() => handleAddSet(slideIndex)}
+                    onDeleteSet={(setIndex) => handleDeleteSet(slideIndex, setIndex)}
+                    onUpdateSet={(setIndex, field, value) => handleUpdateSet(slideIndex, setIndex, field, value)}
                     onMuscleGroupPress={() => {
                       setCurrentSlideIndex(slideIndex);
                       setShowMuscleGroupPicker(true);
@@ -242,7 +301,7 @@ export default function PostWorkout() {
           title="Select Target Muscles"
           options={MUSCLE_GROUPS}
           selectedOptions={slides[currentSlideIndex].exercise.muscleGroups}
-          onToggle={(muscleGroup) => toggleExerciseMuscleGroup(currentSlideIndex, muscleGroup)}
+          onToggle={(muscleGroup) => handleToggleExerciseMuscleGroup(currentSlideIndex, muscleGroup)}
         />
       )}
     </GestureHandlerRootView>
