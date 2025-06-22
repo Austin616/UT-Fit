@@ -7,7 +7,7 @@ import "../../global.css";
 
 export default function TabsLayout() {
   return (
-    <View className="flex-1">
+    <View className="flex-1 bg-white">
       <Header />
       <Tabs
         screenOptions={{

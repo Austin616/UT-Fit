@@ -1,8 +1,7 @@
-import { View, Text, TextInput, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform, Modal, Dimensions } from 'react-native';
-import React, { useState, useCallback } from 'react';
+import { View, Text, TextInput, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform, Modal } from 'react-native';
+import React, { useCallback } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ChevronDown, Plus, X, Check } from 'lucide-react-native';
-import { useRouter, useNavigation } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
 import {
   GestureHandlerRootView,
@@ -18,7 +17,8 @@ import Animated, {
   Layout,
   Easing,
 } from 'react-native-reanimated';
-import { WORKOUT_CATEGORIES, MUSCLE_GROUPS, WorkoutCategory, MuscleGroup } from '../../constants/workout';
+import { WORKOUT_CATEGORIES, MUSCLE_GROUPS, MuscleGroup } from '../../constants/workout';
+import { useWorkout } from '../../hooks/useWorkout';
 
 interface Set {
   weight: string;
@@ -33,9 +33,6 @@ interface Exercise {
 
 const AnimatedTouchableOpacity = Animated.createAnimatedComponent(TouchableOpacity);
 
-const SCREEN_WIDTH = Dimensions.get('window').width;
-const SWIPE_THRESHOLD = -75;
-
 interface SetRowProps {
   exercise: Exercise;
   exerciseIndex: number;
@@ -45,52 +42,42 @@ interface SetRowProps {
   onUpdateSet: (exerciseIndex: number, setIndex: number, field: 'weight' | 'reps', value: string) => void;
 }
 
-const SetRow = React.memo(({ 
-  exercise, 
-  exerciseIndex, 
-  set, 
+const SetRow = React.memo(({
+  exercise,
+  exerciseIndex,
+  set,
   setIndex,
   onDelete,
   onUpdateSet
 }: SetRowProps) => {
-  // Display the current position + 1 as the set number
-  const displayNumber = setIndex + 1;
-
   return (
-    <Animated.View 
-      key={`set-${exerciseIndex}-${setIndex}`}
-      entering={FadeInDown.springify()}
+    <Animated.View
+      entering={FadeInDown.delay(setIndex * 50).springify()}
       layout={Layout.springify()}
-      className="mb-2"
+      className="flex-row items-center mb-4 last:mb-0"
     >
-      <View className="flex-row items-center">
-        <View className="flex-1 flex-row items-center bg-white rounded-xl p-3">
-          <View className="w-10 h-10 rounded-full bg-ut_orange/10 items-center justify-center">
-            <Text className="text-ut_orange font-semibold">{displayNumber}</Text>
-          </View>
-          <View className="flex-1 flex-row gap-3 ml-2">
-            <View className="flex-1">
-              <TextInput
-                value={set.weight}
-                onChangeText={(text) => onUpdateSet(exerciseIndex, setIndex, 'weight', text)}
-                placeholder="0"
-                keyboardType="numeric"
-                className="text-center text-gray-900 text-lg font-medium"
-              />
-              <Text className="text-gray-500 text-xs mt-1 text-center">lbs</Text>
-            </View>
-            <View className="w-0.5 bg-gray-200" />
-            <View className="flex-1">
-              <TextInput
-                value={set.reps}
-                onChangeText={(text) => onUpdateSet(exerciseIndex, setIndex, 'reps', text)}
-                placeholder="0"
-                keyboardType="numeric"
-                className="text-center text-gray-900 text-lg font-medium"
-              />
-              <Text className="text-gray-500 text-xs mt-1 text-center">reps</Text>
-            </View>
-          </View>
+      <View className="w-8 mr-4">
+        <Text className="text-gray-500 font-medium text-center">{setIndex + 1}</Text>
+      </View>
+      <View className="flex-1 flex-row items-center">
+        <View className="flex-1 mr-2">
+          <TextInput
+            value={set.weight}
+            onChangeText={(text) => onUpdateSet(exerciseIndex, setIndex, 'weight', text)}
+            placeholder="Weight"
+            keyboardType="numeric"
+            className="bg-white border border-gray-200 rounded-lg px-3 py-2 text-center"
+          />
+        </View>
+        <Text className="text-gray-500 mx-2">×</Text>
+        <View className="flex-1 mr-2">
+          <TextInput
+            value={set.reps}
+            onChangeText={(text) => onUpdateSet(exerciseIndex, setIndex, 'reps', text)}
+            placeholder="Reps"
+            keyboardType="numeric"
+            className="bg-white border border-gray-200 rounded-lg px-3 py-2 text-center"
+          />
         </View>
         {exercise.sets.length > 1 && (
           <TouchableOpacity 
@@ -106,16 +93,27 @@ const SetRow = React.memo(({
 });
 
 export default function LogWorkout() {
-  const [workoutName, setWorkoutName] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState<WorkoutCategory[]>([]);
-  const [selectedMuscleGroups, setSelectedMuscleGroups] = useState<MuscleGroup[]>([]);
-  const [exercises, setExercises] = useState<Exercise[]>([
-    { name: '', sets: [{ weight: '', reps: '' }], muscleGroups: [] }
-  ]);
-  const [showCategoryPicker, setShowCategoryPicker] = useState(false);
-  const [currentExerciseIndex, setCurrentExerciseIndex] = useState<number | null>(null);
-  const [showMuscleGroupPicker, setShowMuscleGroupPicker] = useState(false);
-  const [animationKey, setAnimationKey] = useState(0);
+  const {
+    workoutName,
+    selectedCategory,
+    exercises,
+    showCategoryPicker,
+    showMuscleGroupPicker,
+    currentExerciseIndex,
+    setWorkoutName,
+    setShowCategoryPicker,
+    setShowMuscleGroupPicker,
+    setCurrentExerciseIndex,
+    toggleCategory,
+    toggleExerciseMuscleGroup,
+    addExercise,
+    deleteExercise,
+    addSet,
+    deleteSet,
+    updateSet,
+    updateExerciseName,
+    validateWorkout,
+  } = useWorkout();
 
   // Animation values
   const pageAnimationProgress = useSharedValue(0);
@@ -138,9 +136,6 @@ export default function LogWorkout() {
         easing: Easing.out(Easing.cubic),
       });
 
-      // Force re-mount of animated components
-      setAnimationKey(prev => prev + 1);
-
       return () => {
         // Reset animations when screen loses focus
         pageAnimationProgress.value = 0;
@@ -149,101 +144,21 @@ export default function LogWorkout() {
     }, [])
   );
 
-  const toggleCategory = (category: WorkoutCategory) => {
-    setSelectedCategory(prev => 
-      prev.includes(category)
-        ? prev.filter(c => c !== category)
-        : [...prev, category]
-    );
-  };
-
-  const toggleExerciseMuscleGroup = (exerciseIndex: number, muscleGroup: MuscleGroup) => {
-    const updatedExercises = [...exercises];
-    const exercise = updatedExercises[exerciseIndex];
-    
-    if (exercise.muscleGroups.includes(muscleGroup)) {
-      exercise.muscleGroups = exercise.muscleGroups.filter(mg => mg !== muscleGroup);
-    } else {
-      exercise.muscleGroups = [...exercise.muscleGroups, muscleGroup];
-    }
-    
-    setExercises(updatedExercises);
-  };
-
-  const addExercise = () => {
-    setExercises([...exercises, { name: '', sets: [{ weight: '', reps: '' }], muscleGroups: [] }]);
-  };
-
-  const addSet = useCallback((exerciseIndex: number) => {
-    setExercises(prevExercises => {
-      const updatedExercises = [...prevExercises];
-      const exercise = {...updatedExercises[exerciseIndex]};
-      
-      exercise.sets = [...exercise.sets, { weight: '', reps: '' }];
-      updatedExercises[exerciseIndex] = exercise;
-      
-      return updatedExercises;
-    });
-  }, []);
-
-  const updateExerciseName = (text: string, index: number) => {
-    const updatedExercises = [...exercises];
-    updatedExercises[index].name = text;
-    setExercises(updatedExercises);
-  };
-
-  const updateSet = (exerciseIndex: number, setIndex: number, field: 'weight' | 'reps', value: string) => {
-    const updatedExercises = [...exercises];
-    updatedExercises[exerciseIndex].sets[setIndex][field] = value;
-    setExercises(updatedExercises);
-  };
-
-  const deleteExercise = (exerciseIndex: number) => {
-    const updatedExercises = [...exercises];
-    updatedExercises.splice(exerciseIndex, 1);
-    setExercises(updatedExercises);
-  };
-
-  const deleteSet = useCallback((exerciseIndex: number, setIndex: number) => {
-    console.log(`Attempting to delete set ${setIndex} from exercise ${exerciseIndex}`);
-    
-    setExercises(currentExercises => {
-      // Don't delete if it's the last set
-      if (currentExercises[exerciseIndex].sets.length <= 1) {
-        return currentExercises;
-      }
-
-      // Create a new copy of exercises
-      const newExercises = [...currentExercises];
-      
-      // Create a new copy of the specific exercise
-      const exerciseToUpdate = {...newExercises[exerciseIndex]};
-      
-      // Remove only the specific set
-      const updatedSets = exerciseToUpdate.sets.filter((_, index) => index !== setIndex);
-      
-      // Update the exercise with new sets
-      exerciseToUpdate.sets = updatedSets;
-      
-      // Put the updated exercise back in the array
-      newExercises[exerciseIndex] = exerciseToUpdate;
-      
-      console.log(`After deletion: ${updatedSets.length} sets remaining`);
-      return newExercises;
-    });
-  }, []);
-
   const handleSubmit = () => {
     submitButtonScale.value = withSequence(
       withTiming(0.95, { duration: 100 }),
       withTiming(1, { duration: 100 })
     );
     
-    // TODO: Handle saving the workout
+    const validation = validateWorkout();
+    if (!validation.isValid) {
+      alert(validation.message);
+      return;
+    }
+
     console.log({ 
       workoutName,
       categories: selectedCategory,
-      muscleGroups: selectedMuscleGroups,
       exercises 
     });
   };
@@ -275,7 +190,7 @@ export default function LogWorkout() {
     >
       <View className="flex-1 justify-end bg-black/50">
         <View className="bg-white rounded-t-3xl">
-          <View className="flex-row items-center justify-between p-4 border-b border-gray-200 ">
+          <View className="flex-row items-center justify-between p-4 border-b border-gray-200">
             <TouchableOpacity onPress={onClose}>
               <X size={24} color="#000" />
             </TouchableOpacity>
@@ -284,7 +199,7 @@ export default function LogWorkout() {
               <Text className="text-ut_orange font-semibold">Done</Text>
             </TouchableOpacity>
           </View>
-          <ScrollView className="max-h-96 p-4 ">
+          <ScrollView className="max-h-96 p-4">
             {options.map((option) => (
               <TouchableOpacity
                 key={option}
@@ -310,17 +225,16 @@ export default function LogWorkout() {
         className="flex-1 bg-white"
       >
         <SafeAreaView className="flex-1" edges={['left', 'right', 'bottom']}>
-          {/* Decorative UT-themed header */}
-          
           <Animated.ScrollView 
             style={contentStyle}
             className="flex-1 pt-6" 
             showsVerticalScrollIndicator={false}
             contentContainerClassName="px-4"
           >
-          <View className="flex-row items-center px-6 justify-center">
-            <Text className="text-2xl font-bold text-ut_orange mb-2">Log Workout</Text>
-          </View>
+            <View className="flex-row items-center px-6 justify-center">
+              <Text className="text-2xl font-bold text-ut_orange mb-2">Log Workout</Text>
+            </View>
+            
             {/* Workout Name */}
             <Animated.View 
               entering={FadeInDown.delay(100).springify()} 
@@ -371,7 +285,9 @@ export default function LogWorkout() {
                       onPress={() => deleteExercise(exerciseIndex)}
                       className="p-2 -mr-2"
                     >
-                      <X size={20} color="#6B7280" />
+                      {exercises.length > 1 && (
+                        <X size={20} color="#6B7280" />
+                      )}
                     </TouchableOpacity>
                   </View>
 
@@ -380,13 +296,13 @@ export default function LogWorkout() {
                     <Text className="text-gray-600 text-sm font-medium mb-2">Exercise Name</Text>
                     <TextInput
                       value={exercise.name}
-                      onChangeText={(text) => updateExerciseName(text, exerciseIndex)}
+                      onChangeText={(text) => updateExerciseName(exerciseIndex, text)}
                       placeholder="Enter exercise name"
                       placeholderTextColor="#9CA3AF"
                       className="text-base bg-gray-50 rounded-xl p-3 text-gray-900"
                     />
                   </View>
-                  
+
                   {/* Exercise Muscle Groups */}
                   <View>
                     <Text className="text-gray-600 text-sm font-medium mb-2">Target Muscles</Text>
@@ -397,8 +313,8 @@ export default function LogWorkout() {
                       }}
                       className="flex-row items-center justify-between p-3 bg-gray-50 rounded-xl"
                     >
-                      <Text className={`${exercise.muscleGroups.length > 0 ? 'text-gray-900' : 'text-gray-500'}`}>
-                        {exercise.muscleGroups.length > 0 
+                      <Text className="text-gray-700">
+                        {exercise.muscleGroups.length > 0
                           ? exercise.muscleGroups.join(', ')
                           : 'Select target muscles'}
                       </Text>

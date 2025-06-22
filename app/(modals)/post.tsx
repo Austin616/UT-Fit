@@ -1,378 +1,250 @@
-import { useState, useCallback } from 'react';
-import { View, Text, TextInput, TouchableOpacity, Image } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
+import { useState } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useFocusEffect } from '@react-navigation/native';
+import { Plus, X } from 'lucide-react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
+import Animated, { FadeInUp } from 'react-native-reanimated';
 import * as ImagePicker from 'expo-image-picker';
-import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withSpring,
-  withTiming,
-  withSequence,
-  FadeInDown,
-  FadeInUp,
-  SlideInRight,
-  Layout,
-  Easing,
-} from 'react-native-reanimated';
-import { WORKOUT_CATEGORIES, MUSCLE_GROUPS, WorkoutCategory, MuscleGroup } from '../../constants/workout';
-import { Camera, Plus, ImageIcon } from 'lucide-react-native';
-
-interface Set {
-  weight: string;
-  reps: string;
-}
+import { MuscleGroup, WORKOUT_CATEGORIES, MUSCLE_GROUPS } from '../../constants/workout';
+import { WorkoutTypeSelector } from '../../components/WorkoutTypeSelector';
+import { PickerModal } from '../../components/PickerModal';
+import { ExerciseCard } from '../../components/ExerciseCard';
+import { useWorkout } from '../../hooks/useWorkout';
 
 interface Exercise {
   name: string;
-  sets: Set[];
-  image: string | null;
+  sets: { weight: string; reps: string }[];
+  muscleGroups: MuscleGroup[];
+}
+
+interface Slide {
+  image: string;
+  caption: string;
+  exercise: Exercise;
 }
 
 export default function PostWorkout() {
-  const [workoutName, setWorkoutName] = useState('');
-  const [bio, setBio] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState<WorkoutCategory[]>([]);
-  const [selectedMuscleGroups, setSelectedMuscleGroups] = useState<MuscleGroup[]>([]);
-  const [coverPhoto, setCoverPhoto] = useState<string | null>(null);
-  const [exercises, setExercises] = useState<Exercise[]>([
-    { name: '', sets: [{ weight: '', reps: '' }], image: null }
-  ]);
-  const [animationKey, setAnimationKey] = useState(0);
+  const {
+    workoutName,
+    selectedCategory,
+    showCategoryPicker,
+    showMuscleGroupPicker,
+    setWorkoutName,
+    setShowCategoryPicker,
+    setShowMuscleGroupPicker,
+    toggleCategory,
+    toggleExerciseMuscleGroup,
+    addSet,
+    deleteSet,
+    updateSet,
+    updateExerciseName,
+    validateWorkout,
+  } = useWorkout();
 
-  // Animation values
-  const pageAnimationProgress = useSharedValue(0);
-  const submitButtonScale = useSharedValue(1);
-  const headerOpacity = useSharedValue(0);
+  const [slides, setSlides] = useState<Slide[]>([{
+    image: '',
+    caption: '',
+    exercise: { name: '', sets: [{ weight: '', reps: '' }], muscleGroups: [] }
+  }]);
+  const [currentSlideIndex, setCurrentSlideIndex] = useState<number | null>(null);
 
-  useFocusEffect(
-    useCallback(() => {
-      // Reset animations
-      pageAnimationProgress.value = 0;
-      headerOpacity.value = 0;
-
-      // Start animations
-      pageAnimationProgress.value = withTiming(1, {
-        duration: 800,
-        easing: Easing.out(Easing.cubic),
-      });
-      headerOpacity.value = withTiming(1, {
-        duration: 400,
-        easing: Easing.out(Easing.cubic),
-      });
-
-      // Force re-mount of animated components
-      setAnimationKey(prev => prev + 1);
-
-      return () => {
-        // Reset animations when screen loses focus
-        pageAnimationProgress.value = 0;
-        headerOpacity.value = 0;
-      };
-    }, [])
-  );
-
-  const toggleCategory = (category: WorkoutCategory) => {
-    setSelectedCategory(prev => 
-      prev.includes(category)
-        ? prev.filter(c => c !== category)
-        : [...prev, category]
-    );
-  };
-
-  const toggleMuscleGroup = (muscleGroup: MuscleGroup) => {
-    setSelectedMuscleGroups(prev => 
-      prev.includes(muscleGroup)
-        ? prev.filter(mg => mg !== muscleGroup)
-        : [...prev, muscleGroup]
-    );
-  };
-
-  const pickImage = async (callback: (uri: string) => void) => {
-    let result = await ImagePicker.launchImageLibraryAsync({
+  const pickImage = async (slideIndex: number) => {
+    const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
-      aspect: [16, 9],
+      aspect: [4, 5],
       quality: 1,
     });
 
-    if (!result.canceled && result.assets) {
-      callback(result.assets[0].uri);
+    if (!result.canceled) {
+      setSlides(current => {
+        const newSlides = [...current];
+        newSlides[slideIndex].image = result.assets[0].uri;
+        return newSlides;
+      });
     }
   };
 
-  const updateExerciseImage = (uri: string, index: number) => {
-    const updatedExercises = [...exercises];
-    updatedExercises[index].image = uri;
-    setExercises(updatedExercises);
+  const addSlide = () => {
+    setSlides(current => [...current, {
+      image: '',
+      caption: '',
+      exercise: { name: '', sets: [{ weight: '', reps: '' }], muscleGroups: [] }
+    }]);
   };
 
-  const addExercise = () => {
-    setExercises([...exercises, { name: '', sets: [{ weight: '', reps: '' }], image: null }]);
+  const deleteSlide = (index: number) => {
+    if (slides.length <= 1) return;
+    setSlides(current => current.filter((_, i) => i !== index));
   };
 
-  const addSet = (exerciseIndex: number) => {
-    const updatedExercises = [...exercises];
-    updatedExercises[exerciseIndex].sets.push({ weight: '', reps: '' });
-    setExercises(updatedExercises);
-  };
-
-  const updateExerciseName = (text: string, index: number) => {
-    const updatedExercises = [...exercises];
-    updatedExercises[index].name = text;
-    setExercises(updatedExercises);
-  };
-
-  const updateSet = (exerciseIndex: number, setIndex: number, field: 'weight' | 'reps', value: string) => {
-    const updatedExercises = [...exercises];
-    updatedExercises[exerciseIndex].sets[setIndex][field] = value;
-    setExercises(updatedExercises);
-  };
-
-  const handleSubmit = () => {
-    submitButtonScale.value = withSequence(
-      withTiming(0.95, { duration: 100 }),
-      withTiming(1, { duration: 100 })
-    );
-    
-    // TODO: Handle saving and posting the workout
-    console.log({ 
-      workoutName,
-      bio,
-      categories: selectedCategory,
-      muscleGroups: selectedMuscleGroups,
-      coverPhoto,
-      exercises 
+  const updateCaption = (slideIndex: number, caption: string) => {
+    setSlides(current => {
+      const newSlides = [...current];
+      newSlides[slideIndex].caption = caption;
+      return newSlides;
     });
   };
 
-  const contentStyle = useAnimatedStyle(() => ({
-    opacity: pageAnimationProgress.value,
-    transform: [
-      { translateY: withSpring((1 - pageAnimationProgress.value) * 50, { damping: 15 }) },
-    ],
-  }));
+  const onSubmit = () => {
+    const validation = validateWorkout();
+    if (!validation.isValid) {
+      alert(validation.message);
+      return;
+    }
 
-  const submitButtonAnimatedStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: submitButtonScale.value }],
-  }));
+    console.log('Workout Details:');
+    console.log('----------------');
+    console.log(`Workout Name: ${workoutName}`);
+    console.log(`Categories: ${selectedCategory.join(', ')}`);
+    console.log('\nSlides:');
+    slides.forEach((slide, index) => {
+      console.log(`\nSlide ${index + 1}:`);
+      console.log(`Exercise: ${slide.exercise.name}`);
+      console.log(`Target Muscles: ${slide.exercise.muscleGroups.join(', ')}`);
+      console.log('Sets:');
+      slide.exercise.sets.forEach((set, setIndex) => {
+        console.log(`  Set ${setIndex + 1}: ${set.weight}lbs x ${set.reps} reps`);
+      });
+      if (slide.caption) {
+        console.log(`Caption: ${slide.caption}`);
+      }
+    });
 
-  const AnimatedTouchableOpacity = Animated.createAnimatedComponent(TouchableOpacity);
+    alert('Workout posted successfully!');
+  };
 
   return (
-    <SafeAreaView className="flex-1 bg-white" edges={['left', 'right', 'bottom']}>
-      <Animated.ScrollView 
-        style={contentStyle}
-        className="flex-1 px-6 pt-6" 
-        showsVerticalScrollIndicator={false}
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        className="flex-1 bg-white"
       >
-        <View className="flex-row items-center">
-          <Text className="text-2xl font-bold text-ut_orange mb-2">Get Started</Text>
-        </View>
-        {/* Cover Photo */}
-        <Animated.View entering={FadeInDown.delay(100).springify()} className="mb-6">
-          <View className="flex-row items-center justify-between mb-2">
-            <Text className="text-gray-600 font-semibold">Cover Photo</Text>
-            <TouchableOpacity onPress={() => setCoverPhoto(null)}>
-              <Text className="text-ut_orange">Clear</Text>
-            </TouchableOpacity>
-          </View>
-          <TouchableOpacity
-            onPress={() => pickImage(setCoverPhoto)}
-            className="border border-gray-300 rounded-lg p-3 items-center justify-center h-48 bg-gray-50 overflow-hidden"
-          >
-            {coverPhoto ? (
-              <Image source={{ uri: coverPhoto }} className="w-full h-full rounded-lg" />
-            ) : (
-              <>
-                <Camera size={32} color="#bf5700" />
-                <Text className="text-ut_orange mt-2">Add Cover Photo</Text>
-              </>
-            )}
-          </TouchableOpacity>
-        </Animated.View>
-
-        {/* Workout Name */}
-        <Animated.View entering={FadeInDown.delay(200).springify()} className="mb-6">
-          <Text className="text-gray-600 mb-2 font-semibold">Workout Name</Text>
-          <TextInput
-            value={workoutName}
-            onChangeText={setWorkoutName}
-            placeholder="e.g., Morning Push Day"
-            className="border border-gray-300 rounded-lg p-3"
-          />
-        </Animated.View>
-
-        {/* Bio */}
-        <Animated.View entering={FadeInDown.delay(250).springify()} className="mb-6">
-          <Text className="text-gray-600 mb-2 font-semibold">Description</Text>
-          <TextInput
-            value={bio}
-            onChangeText={setBio}
-            placeholder="Share details about your workout..."
-            className="border border-gray-300 rounded-lg p-3 h-24"
-            multiline
-          />
-        </Animated.View>
-
-        {/* Workout Categories */}
-        <Animated.View entering={FadeInDown.delay(300).springify()} className="mb-6">
-          <Text className="text-gray-600 mb-2 font-semibold">Workout Type</Text>
-          <View className="flex-row flex-wrap gap-2">
-            {WORKOUT_CATEGORIES.map((category) => (
-              <TouchableOpacity
-                key={category}
-                onPress={() => toggleCategory(category)}
-                className={`px-3 py-2 rounded-full border ${
-                  selectedCategory.includes(category)
-                    ? 'bg-ut_orange border-ut_orange'
-                    : 'border-gray-300 bg-white'
-                }`}
-              >
-                <Text
-                  className={`${
-                    selectedCategory.includes(category)
-                      ? 'text-white'
-                      : 'text-gray-700'
-                  }`}
-                >
-                  {category}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        </Animated.View>
-
-        {/* Muscle Groups */}
-        <Animated.View entering={FadeInDown.delay(350).springify()} className="mb-6">
-          <Text className="text-gray-600 mb-2 font-semibold">Muscle Groups</Text>
-          <View className="flex-row flex-wrap gap-2">
-            {MUSCLE_GROUPS.map((muscleGroup) => (
-              <TouchableOpacity
-                key={muscleGroup}
-                onPress={() => toggleMuscleGroup(muscleGroup)}
-                className={`px-3 py-2 rounded-full border ${
-                  selectedMuscleGroups.includes(muscleGroup)
-                    ? 'bg-ut_orange border-ut_orange'
-                    : 'border-gray-300 bg-white'
-                }`}
-              >
-                <Text
-                  className={`${
-                    selectedMuscleGroups.includes(muscleGroup)
-                      ? 'text-white'
-                      : 'text-gray-700'
-                  }`}
-                >
-                  {muscleGroup}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        </Animated.View>
-
-        {/* Exercises */}
-        {exercises.map((exercise, exerciseIndex) => (
-          <Animated.View 
-            key={`${animationKey}-exercise-${exerciseIndex}`}
-            entering={FadeInUp.delay(exerciseIndex * 100).springify()}
-            layout={Layout.springify()}
-            className="mb-6 p-4 bg-gray-50 rounded-lg"
-          >
-            <Text className="text-gray-600 mb-2 font-semibold">Exercise Name</Text>
-            <TextInput
-              value={exercise.name}
-              onChangeText={(text) => updateExerciseName(text, exerciseIndex)}
-              placeholder="Enter exercise name"
-              className="border border-gray-300 rounded-lg p-3 bg-white mb-4"
-            />
-
-            {/* Optional Exercise Image */}
-            <View className="flex-row items-center justify-between mb-2">
-              <Text className="text-gray-600">Exercise Photo</Text>
-              <TouchableOpacity onPress={() => updateExerciseImage('', exerciseIndex)}>
-                <Text className="text-ut_orange">Clear</Text>
-              </TouchableOpacity>
+        <SafeAreaView className="flex-1" edges={['left', 'right', 'bottom']}>
+          <ScrollView className="flex-1 pt-6" showsVerticalScrollIndicator={false}>
+            {/* Header */}
+            <View className="px-4 mb-6">
+              <Text className="text-2xl font-bold text-gray-900">New Post</Text>
+              <Text className="text-base text-gray-500 mt-1">Share your workout journey</Text>
             </View>
-            <TouchableOpacity
-              onPress={() => pickImage((uri) => updateExerciseImage(uri, exerciseIndex))}
-              className="border border-dashed border-gray-400 rounded-lg p-3 items-center justify-center h-32 bg-gray-100 mb-4"
-            >
-              {exercise.image ? (
-                <Image source={{ uri: exercise.image }} className="w-full h-full rounded-lg" />
-              ) : (
-                <>
-                  <ImageIcon size={24} color="#bf5700" />
-                  <Text className="text-ut_orange mt-2 text-sm">Add Exercise Photo (Optional)</Text>
-                </>
-              )}
-            </TouchableOpacity>
 
-            {/* Sets */}
-            {exercise.sets.map((set, setIndex) => (
-              <Animated.View 
-                key={`${animationKey}-set-${exerciseIndex}-${setIndex}`}
-                entering={SlideInRight.delay(setIndex * 50).springify()}
-                layout={Layout.springify()}
-                className="flex-row mb-4"
-              >
-                <View className="flex-1 mr-2">
-                  <Text className="text-gray-600 mb-1">Weight (lbs)</Text>
-                  <TextInput
-                    value={set.weight}
-                    onChangeText={(text) => updateSet(exerciseIndex, setIndex, 'weight', text)}
-                    placeholder="0"
-                    keyboardType="numeric"
-                    className="border border-gray-300 rounded-lg p-3 bg-white"
+            {/* Workout Name */}
+            <View className="px-4 mb-6">
+              <TextInput
+                value={workoutName}
+                onChangeText={setWorkoutName}
+                placeholder="Workout Name"
+                className="text-xl font-semibold text-gray-900"
+              />
+            </View>
+
+            {/* Workout Type */}
+            <View className="px-4">
+              <WorkoutTypeSelector
+                selectedCategory={selectedCategory}
+                onPress={() => setShowCategoryPicker(true)}
+              />
+            </View>
+
+            {/* Slides */}
+            {slides.map((slide, slideIndex) => (
+              <View key={`slide-${slideIndex}`} className="px-4">
+                <Animated.View
+                  entering={FadeInUp.delay(slideIndex * 100).springify()}
+                  className="mb-8 bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden"
+                >
+                  {/* Slide Header */}
+                  <View className="p-4 flex-row items-center justify-between border-b border-gray-100">
+                    <Text className="text-lg font-semibold text-gray-900">Slide {slideIndex + 1}</Text>
+                    {slides.length > 1 && (
+                      <TouchableOpacity
+                        onPress={() => deleteSlide(slideIndex)}
+                        className="p-2 -mr-2"
+                      >
+                        <X size={20} color="#6B7280" />
+                      </TouchableOpacity>
+                    )}
+                  </View>
+
+                  {/* Caption */}
+                  <View className="p-4 border-b border-gray-100">
+                    <TextInput
+                      value={slide.caption}
+                      onChangeText={(text) => updateCaption(slideIndex, text)}
+                      placeholder="Write a caption..."
+                      multiline
+                      className="text-gray-900 min-h-[60px]"
+                    />
+                  </View>
+
+                  {/* Exercise Card */}
+                  <ExerciseCard
+                    exercise={slide.exercise}
+                    exerciseIndex={slideIndex}
+                    onUpdateName={(name) => updateExerciseName(slideIndex, name)}
+                    onAddSet={() => addSet(slideIndex)}
+                    onDeleteSet={(setIndex) => deleteSet(slideIndex, setIndex)}
+                    onUpdateSet={(setIndex, field, value) => updateSet(slideIndex, setIndex, field, value)}
+                    onMuscleGroupPress={() => {
+                      setCurrentSlideIndex(slideIndex);
+                      setShowMuscleGroupPicker(true);
+                    }}
+                    showDelete={false}
+                    image={slide.image}
+                    onImagePress={() => pickImage(slideIndex)}
                   />
-                </View>
-                <View className="flex-1">
-                  <Text className="text-gray-600 mb-1">Reps</Text>
-                  <TextInput
-                    value={set.reps}
-                    onChangeText={(text) => updateSet(exerciseIndex, setIndex, 'reps', text)}
-                    placeholder="0"
-                    keyboardType="numeric"
-                    className="border border-gray-300 rounded-lg p-3 bg-white"
-                  />
-                </View>
-              </Animated.View>
+                </Animated.View>
+              </View>
             ))}
 
-            {/* Add Set Button */}
+            {/* Add Slide Button */}
             <TouchableOpacity
-              onPress={() => addSet(exerciseIndex)}
-              className="flex-row items-center justify-center p-3 border border-ut_orange rounded-lg mb-2"
+              onPress={addSlide}
+              className="mx-4 mb-8 p-4 border-2 border-dashed border-gray-200 rounded-xl items-center"
               activeOpacity={0.7}
             >
-              <Plus size={20} color="#bf5700" />
-              <Text className="text-ut_orange ml-2">Add Set</Text>
+              <Plus size={24} color="#6B7280" />
+              <Text className="text-gray-600 font-medium mt-2">Add Another Slide</Text>
             </TouchableOpacity>
-          </Animated.View>
-        ))}
+          </ScrollView>
 
-        {/* Add Exercise Button */}
-        <TouchableOpacity
-          onPress={addExercise}
-          className="flex-row items-center justify-center p-4 bg-gray-100 rounded-lg mb-6"
-          activeOpacity={0.7}
-        >
-          <Plus size={24} color="#bf5700" />
-          <Text className="text-ut_orange ml-2 font-medium">Add Exercise</Text>
-        </TouchableOpacity>
+          {/* Post Button */}
+          <View className="p-4 border-t border-gray-200">
+            <TouchableOpacity
+              className="w-full bg-ut_orange py-4 rounded-xl items-center"
+              activeOpacity={0.7}
+              onPress={onSubmit}
+            >
+              <Text className="text-white font-semibold text-lg">Post Workout</Text>
+            </TouchableOpacity>
+          </View>
+        </SafeAreaView>
+      </KeyboardAvoidingView>
 
-        {/* Submit Button */}
-        <Animated.View entering={FadeInUp.delay(500).springify()} className="mb-6">
-          <AnimatedTouchableOpacity
-            style={submitButtonAnimatedStyle}
-            onPress={handleSubmit}
-            className="bg-ut_orange p-4 rounded-lg"
-            activeOpacity={0.8}
-          >
-            <Text className="text-white text-center font-bold">Post Workout</Text>
-          </AnimatedTouchableOpacity>
-        </Animated.View>
-      </Animated.ScrollView>
-    </SafeAreaView>
+      {/* Workout Type Picker Modal */}
+      <PickerModal
+        visible={showCategoryPicker}
+        onClose={() => setShowCategoryPicker(false)}
+        title="Select Workout Type"
+        options={WORKOUT_CATEGORIES}
+        selectedOptions={selectedCategory}
+        onToggle={toggleCategory}
+      />
+
+      {/* Muscle Group Picker Modal */}
+      {currentSlideIndex !== null && (
+        <PickerModal
+          visible={showMuscleGroupPicker}
+          onClose={() => {
+            setShowMuscleGroupPicker(false);
+            setCurrentSlideIndex(null);
+          }}
+          title="Select Target Muscles"
+          options={MUSCLE_GROUPS}
+          selectedOptions={slides[currentSlideIndex].exercise.muscleGroups}
+          onToggle={(muscleGroup) => toggleExerciseMuscleGroup(currentSlideIndex, muscleGroup)}
+        />
+      )}
+    </GestureHandlerRootView>
   );
 } 
