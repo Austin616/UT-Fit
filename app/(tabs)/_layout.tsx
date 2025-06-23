@@ -1,9 +1,8 @@
 import { Tabs } from "expo-router";
-import { Compass } from "lucide-react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { View } from "react-native";
 import CustomTabBar from "../../components/CustomTabBar";
 import Header from "../../components/Header";
-import { Ionicons } from "@expo/vector-icons";
 import "../../global.css";
 
 export default function TabsLayout() {
@@ -30,7 +29,7 @@ export default function TabsLayout() {
           options={{
             title: 'Explore',
             tabBarIcon: ({ color, size }) => (
-              <Compass size={24} color={color} />
+              <Ionicons name="compass-outline" size={size} color={color} />
             ),
           }}
         />
@@ -44,11 +43,11 @@ export default function TabsLayout() {
           }}
         />
         <Tabs.Screen
-          name="notifications"
+          name="history"
           options={{
-            title: 'Notifications',
+            title: 'History',
             tabBarIcon: ({ color, size }) => (
-              <Ionicons name="notifications-outline" size={size} color={color} />
+              <Ionicons name="calendar-outline" size={size} color={color} />
             ),
           }}
         />

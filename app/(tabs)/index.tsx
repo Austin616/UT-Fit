@@ -57,24 +57,21 @@ const QUICK_ACTIONS = [
     title: 'Log Workout',
     icon: Plus,
     route: '/log',
-    color: '#bf5700',
-    isCircle: true
+    color: '#bf5700'
   },
   {
     id: '2',
     title: 'View History',
     icon: History,
     route: '/history',
-    color: '#2563eb',
-    isCircle: false
+    color: '#2563eb'
   },
   {
     id: '3',
     title: 'Share Progress',
     icon: TrendingUp,
     route: '/post',
-    color: '#059669',
-    isCircle: false
+    color: '#059669'
   }
 ];
 
@@ -278,13 +275,11 @@ export default function HomeScreen() {
               >
                 <TouchableOpacity
                   onPress={() => router.push(action.route)}
-                  className={`p-4 rounded-2xl ${!action.isCircle ? 'bg-white shadow-sm border border-gray-100' : ''}`}
+                  className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100"
                   activeOpacity={0.7}
                 >
-                  <View className={action.isCircle ? 'bg-ut_orange w-14 h-14 rounded-full items-center justify-center mb-2' : ''}>
-                    <action.icon size={24} color={action.isCircle ? '#ffffff' : action.color} />
-                  </View>
-                  <Text className={`font-medium text-gray-900 ${action.isCircle ? 'text-center' : 'mt-2'}`}>{action.title}</Text>
+                  <action.icon size={24} color={action.color} />
+                  <Text className="mt-2 font-medium text-gray-900">{action.title}</Text>
                 </TouchableOpacity>
               </Animated.View>
             ))}
