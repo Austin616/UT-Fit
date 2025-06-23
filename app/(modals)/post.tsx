@@ -1,15 +1,30 @@
-import { View, Text, TextInput, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
-import { useState } from 'react';
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  KeyboardAvoidingView,
+  Platform,
+} from 'react-native';
+import { useState, useCallback } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Plus, X } from 'lucide-react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import Animated, { FadeInUp } from 'react-native-reanimated';
+import Animated, {
+  FadeInDown,
+  useSharedValue,
+  useAnimatedStyle,
+  withTiming,
+  withSpring,
+  Easing,
+} from 'react-native-reanimated';
 import * as ImagePicker from 'expo-image-picker';
 import { MuscleGroup, WORKOUT_CATEGORIES, MUSCLE_GROUPS } from '../../constants/workout';
 import { WorkoutTypeSelector } from '../../components/WorkoutTypeSelector';
 import { PickerModal } from '../../components/PickerModal';
 import { ExerciseCard } from '../../components/ExerciseCard';
 import { useWorkout } from '../../hooks/useWorkout';
+import { useFocusEffect } from '@react-navigation/native';
 
 interface Exercise {
   name: string;
@@ -33,22 +48,52 @@ export default function PostWorkout() {
     setShowCategoryPicker,
     setShowMuscleGroupPicker,
     toggleCategory,
-    toggleExerciseMuscleGroup,
     validateWorkout,
     duration,
     setDuration,
   } = useWorkout();
 
-  const [slides, setSlides] = useState<Slide[]>([{
-    image: '',
-    caption: '',
-    exercise: { name: '', sets: [{ weight: '', reps: '' }], muscleGroups: [] }
-  }]);
+  const [slides, setSlides] = useState<Slide[]>([
+    {
+      image: '',
+      caption: '',
+      exercise: { name: '', sets: [{ weight: '', reps: '' }], muscleGroups: [] },
+    },
+  ]);
   const [currentSlideIndex, setCurrentSlideIndex] = useState<number | null>(null);
+
+  // Animation values
+  const pageAnimationProgress = useSharedValue(0);
+  const submitButtonScale = useSharedValue(1);
+  const headerOpacity = useSharedValue(0);
+
+  useFocusEffect(
+    useCallback(() => {
+      // Reset animations
+      pageAnimationProgress.value = 0;
+      headerOpacity.value = 0;
+
+      // Start animations
+      pageAnimationProgress.value = withTiming(1, {
+        duration: 800,
+        easing: Easing.out(Easing.cubic),
+      });
+      headerOpacity.value = withTiming(1, {
+        duration: 400,
+        easing: Easing.out(Easing.cubic),
+      });
+
+      return () => {
+        // Reset animations when screen loses focus
+        pageAnimationProgress.value = 0;
+        headerOpacity.value = 0;
+      };
+    }, [])
+  );
 
   // Set management functions
   const handleAddSet = (slideIndex: number) => {
-    setSlides(current => {
+    setSlides((current) => {
       const newSlides = [...current];
       newSlides[slideIndex].exercise.sets.push({ weight: '', reps: '' });
       return newSlides;
@@ -56,17 +101,24 @@ export default function PostWorkout() {
   };
 
   const handleDeleteSet = (slideIndex: number, setIndex: number) => {
-    setSlides(current => {
+    setSlides((current) => {
       const newSlides = [...current];
       if (newSlides[slideIndex].exercise.sets.length > 1) {
-        newSlides[slideIndex].exercise.sets = newSlides[slideIndex].exercise.sets.filter((_, i) => i !== setIndex);
+        newSlides[slideIndex].exercise.sets = newSlides[slideIndex].exercise.sets.filter(
+          (_, i) => i !== setIndex
+        );
       }
       return newSlides;
     });
   };
 
-  const handleUpdateSet = (slideIndex: number, setIndex: number, field: 'weight' | 'reps', value: string) => {
-    setSlides(current => {
+  const handleUpdateSet = (
+    slideIndex: number,
+    setIndex: number,
+    field: 'weight' | 'reps',
+    value: string
+  ) => {
+    setSlides((current) => {
       const newSlides = [...current];
       newSlides[slideIndex].exercise.sets[setIndex][field] = value;
       return newSlides;
@@ -74,7 +126,7 @@ export default function PostWorkout() {
   };
 
   const handleUpdateExerciseName = (slideIndex: number, name: string) => {
-    setSlides(current => {
+    setSlides((current) => {
       const newSlides = [...current];
       newSlides[slideIndex].exercise.name = name;
       return newSlides;
@@ -82,16 +134,16 @@ export default function PostWorkout() {
   };
 
   const handleToggleExerciseMuscleGroup = (slideIndex: number, muscleGroup: MuscleGroup) => {
-    setSlides(current => {
+    setSlides((current) => {
       const newSlides = [...current];
       const exercise = newSlides[slideIndex].exercise;
-      
+
       if (exercise.muscleGroups.includes(muscleGroup)) {
-        exercise.muscleGroups = exercise.muscleGroups.filter(mg => mg !== muscleGroup);
+        exercise.muscleGroups = exercise.muscleGroups.filter((mg) => mg !== muscleGroup);
       } else {
         exercise.muscleGroups = [...exercise.muscleGroups, muscleGroup];
       }
-      
+
       return newSlides;
     });
   };
@@ -105,7 +157,7 @@ export default function PostWorkout() {
     });
 
     if (!result.canceled) {
-      setSlides(current => {
+      setSlides((current) => {
         const newSlides = [...current];
         newSlides[slideIndex].image = result.assets[0].uri;
         return newSlides;
@@ -114,20 +166,23 @@ export default function PostWorkout() {
   };
 
   const addSlide = () => {
-    setSlides(current => [...current, {
-      image: '',
-      caption: '',
-      exercise: { name: '', sets: [{ weight: '', reps: '' }], muscleGroups: [] }
-    }]);
+    setSlides((current) => [
+      ...current,
+      {
+        image: '',
+        caption: '',
+        exercise: { name: '', sets: [{ weight: '', reps: '' }], muscleGroups: [] },
+      },
+    ]);
   };
 
   const deleteSlide = (index: number) => {
     if (slides.length <= 1) return;
-    setSlides(current => current.filter((_, i) => i !== index));
+    setSlides((current) => current.filter((_, i) => i !== index));
   };
 
   const updateCaption = (slideIndex: number, caption: string) => {
-    setSlides(current => {
+    setSlides((current) => {
       const newSlides = [...current];
       newSlides[slideIndex].caption = caption;
       return newSlides;
@@ -162,77 +217,99 @@ export default function PostWorkout() {
     alert('Workout posted successfully!');
   };
 
+  const contentStyle = useAnimatedStyle(() => ({
+    opacity: pageAnimationProgress.value,
+    transform: [
+      { translateY: withSpring((1 - pageAnimationProgress.value) * 50, { damping: 15 }) },
+    ],
+  }));
+
+  const submitButtonAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: submitButtonScale.value }],
+  }));
+
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        className="flex-1 bg-white"
-      >
+        className="flex-1 bg-white">
         <SafeAreaView className="flex-1" edges={['left', 'right', 'bottom']}>
-          <ScrollView className="flex-1 pt-6" showsVerticalScrollIndicator={false}>
-            {/* Header */}
-            <View className="px-4 mb-6">
-              <Text className="text-2xl font-bold text-gray-900">New Post</Text>
-              <Text className="text-base text-gray-500 mt-1">Share your workout journey</Text>
+          <Animated.ScrollView
+            style={contentStyle}
+            className="flex-1 pt-6"
+            showsVerticalScrollIndicator={false}
+            contentContainerClassName="px-4">
+            <View className="flex-row items-center justify-center px-6">
+              <Text className="mb-2 text-2xl font-bold text-ut_orange">New Post</Text>
             </View>
 
             {/* Workout Name */}
-            <View className="px-4 mb-6">
+            <Animated.View
+              entering={FadeInDown.delay(100).springify()}
+              className="mb-6 rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
+              <Text className="text-ut mb-2 text-lg font-semibold">Name your workout</Text>
               <TextInput
                 value={workoutName}
                 onChangeText={setWorkoutName}
-                placeholder="Workout Name"
-                className="text-xl font-semibold text-gray-900"
+                placeholder="e.g., Morning Push Day"
+                placeholderTextColor="#9CA3AF"
+                className="border-b border-gray-200 px-1 pb-2 text-base text-gray-900"
               />
-            </View>
+            </Animated.View>
 
             {/* Duration Input */}
-            <View className="px-4 mb-6">
+            <Animated.View
+              entering={FadeInDown.delay(150).springify()}
+              className="mb-6 rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
+              <Text className="text-ut mb-2 text-lg font-semibold">Duration (minutes)</Text>
               <TextInput
                 value={duration}
                 onChangeText={setDuration}
-                placeholder="Duration (minutes)"
+                placeholder="e.g., 45"
+                placeholderTextColor="#9CA3AF"
                 keyboardType="numeric"
-                className="text-lg text-gray-700"
+                className="border-b border-gray-200 px-1 pb-2 text-base text-gray-900"
               />
-            </View>
+            </Animated.View>
 
             {/* Workout Type */}
-            <View className="px-4">
+            <Animated.View entering={FadeInDown.delay(200).springify()}>
               <WorkoutTypeSelector
                 selectedCategory={selectedCategory}
                 onPress={() => setShowCategoryPicker(true)}
               />
-            </View>
+            </Animated.View>
 
             {/* Slides */}
             {slides.map((slide, slideIndex) => (
-              <View key={`slide-${slideIndex}`} className="px-4">
+              <View key={`slide-${slideIndex}`}>
                 <Animated.View
-                  entering={FadeInUp.delay(slideIndex * 100).springify()}
-                  className="mb-8 bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden"
-                >
+                  entering={FadeInDown.delay(250 + slideIndex * 100).springify()}
+                  className="mb-8 overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
                   {/* Slide Header */}
-                  <View className="p-4 flex-row items-center justify-between border-b border-gray-100">
-                    <Text className="text-lg font-semibold text-gray-900">Slide {slideIndex + 1}</Text>
+                  <View className="flex-row items-center justify-between border-b border-gray-100 p-4">
+                    <Text className="text-lg font-semibold text-ut_orange">
+                      Slide {slideIndex + 1}
+                    </Text>
                     {slides.length > 1 && (
                       <TouchableOpacity
                         onPress={() => deleteSlide(slideIndex)}
-                        className="p-2 -mr-2"
-                      >
+                        className="-mr-2 p-2">
                         <X size={20} color="#6B7280" />
                       </TouchableOpacity>
                     )}
                   </View>
 
                   {/* Caption */}
-                  <View className="p-4 border-b border-gray-100">
+                  <View className="border-b border-gray-100 p-4">
+                    <Text className="mb-2 text-sm font-medium text-gray-600">Caption</Text>
                     <TextInput
                       value={slide.caption}
                       onChangeText={(text) => updateCaption(slideIndex, text)}
                       placeholder="Write a caption..."
                       multiline
-                      className="text-gray-900 min-h-[60px]"
+                      className="min-h-[60px] text-gray-900"
+                      placeholderTextColor="#9CA3AF"
                     />
                   </View>
 
@@ -243,7 +320,9 @@ export default function PostWorkout() {
                     onUpdateName={(name) => handleUpdateExerciseName(slideIndex, name)}
                     onAddSet={() => handleAddSet(slideIndex)}
                     onDeleteSet={(setIndex) => handleDeleteSet(slideIndex, setIndex)}
-                    onUpdateSet={(setIndex, field, value) => handleUpdateSet(slideIndex, setIndex, field, value)}
+                    onUpdateSet={(setIndex, field, value) =>
+                      handleUpdateSet(slideIndex, setIndex, field, value)
+                    }
                     onMuscleGroupPress={() => {
                       setCurrentSlideIndex(slideIndex);
                       setShowMuscleGroupPicker(true);
@@ -259,24 +338,22 @@ export default function PostWorkout() {
             {/* Add Slide Button */}
             <TouchableOpacity
               onPress={addSlide}
-              className="mx-4 mb-8 p-4 border-2 border-dashed border-gray-200 rounded-xl items-center"
-              activeOpacity={0.7}
-            >
+              className="mb-8 items-center rounded-xl border-2 border-dashed border-gray-200 p-4"
+              activeOpacity={0.7}>
               <Plus size={24} color="#6B7280" />
-              <Text className="text-gray-600 font-medium mt-2">Add Another Slide</Text>
+              <Text className="mt-2 font-medium text-gray-600">Add Another Slide</Text>
             </TouchableOpacity>
-          </ScrollView>
+          </Animated.ScrollView>
 
           {/* Post Button */}
-          <View className="p-4 border-t border-gray-200">
+          <Animated.View style={submitButtonAnimatedStyle} className="border-t border-gray-200 p-4">
             <TouchableOpacity
-              className="w-full bg-ut_orange py-4 rounded-xl items-center"
+              className="w-full items-center rounded-xl bg-ut_orange py-4"
               activeOpacity={0.7}
-              onPress={onSubmit}
-            >
-              <Text className="text-white font-semibold text-lg">Post Workout</Text>
+              onPress={onSubmit}>
+              <Text className="text-lg font-semibold text-white">Post Workout</Text>
             </TouchableOpacity>
-          </View>
+          </Animated.View>
         </SafeAreaView>
       </KeyboardAvoidingView>
 
@@ -301,9 +378,11 @@ export default function PostWorkout() {
           title="Select Target Muscles"
           options={MUSCLE_GROUPS}
           selectedOptions={slides[currentSlideIndex].exercise.muscleGroups}
-          onToggle={(muscleGroup) => handleToggleExerciseMuscleGroup(currentSlideIndex, muscleGroup)}
+          onToggle={(muscleGroup) =>
+            handleToggleExerciseMuscleGroup(currentSlideIndex, muscleGroup)
+          }
         />
       )}
     </GestureHandlerRootView>
   );
-} 
+}

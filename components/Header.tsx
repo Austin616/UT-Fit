@@ -1,7 +1,7 @@
 import { memo } from 'react';
 import { View, Image, TouchableOpacity, Text } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Trophy, MessageCircle, Map, Settings, Edit3, Bell } from 'lucide-react-native';
+import { Trophy, MessageCircle, Map, Settings, Edit3 } from 'lucide-react-native';
 import { usePathname, useRouter } from 'expo-router';
 
 function Header() {
