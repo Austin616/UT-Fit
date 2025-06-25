@@ -3,6 +3,8 @@ import { useState } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Grid, List, Edit3, Settings, Trophy, Map, MessageCircle } from 'lucide-react-native';
 import Animated, { FadeIn, FadeInRight, Layout } from 'react-native-reanimated';
+import { useRouter } from 'expo-router';
+import { useAuth } from '../../contexts/AuthContext';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 const GRID_SIZE = SCREEN_WIDTH / 3;
@@ -20,7 +22,29 @@ const MOCK_POSTS = [
 type ViewMode = 'grid' | 'list';
 
 export default function ProfileScreen() {
+  const router = useRouter();
+  const { user, signOut } = useAuth();
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
+
+  console.log('ProfileScreen rendered. User state:', user ? 'logged in' : 'not logged in');
+
+  if (!user) {
+    console.log('User not logged in, showing sign in prompt');
+    return (
+      <View className="flex-1 justify-center items-center bg-white">
+        <Text className="text-xl font-semibold mb-4">Sign in to view your profile</Text>
+        <TouchableOpacity
+          onPress={() => {
+            console.log('Sign in button pressed, navigating to auth/login');
+            router.push('/auth/login');
+          }}
+          className="bg-ut_orange px-6 py-3 rounded-xl"
+        >
+          <Text className="text-white font-semibold">Sign In</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
 
   const renderGridItem = ({ item, index }: { item: typeof MOCK_POSTS[0], index: number }) => (
     <Animated.View 

@@ -1,11 +1,22 @@
-import React from 'react';
+import { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, Image } from 'react-native';
 import { X, Plus, ChevronDown, ImageIcon } from 'lucide-react-native';
 import Animated, { FadeInDown, Layout } from 'react-native-reanimated';
-import { Exercise, MuscleGroup } from '../constants/workout';
+import { Exercise } from '../constants/exercises';
+import { exerciseImages } from '../constants/exerciseImages';
+
+interface Set {
+  weight: string;
+  reps: string;
+}
+
+interface ExerciseWithSets extends Exercise {
+  sets: Set[];
+  muscleGroups: string[];
+}
 
 interface ExerciseCardProps {
-  exercise: Exercise;
+  exercise: ExerciseWithSets;
   exerciseIndex: number;
   onDelete?: () => void;
   onUpdateName: (name: string) => void;
@@ -32,6 +43,18 @@ export function ExerciseCard({
   image,
   onImagePress
 }: ExerciseCardProps) {
+  const [showEndPosition, setShowEndPosition] = useState(false);
+
+  // Function to get the image source
+  const getImageSource = () => {
+    if (exercise.images && exercise.images.length > 0) {
+      const imageName = exercise.id;
+      const imageKey = `${imageName}_${showEndPosition ? '1' : '0'}`;
+      return exerciseImages[imageKey] || null;
+    }
+    return null;
+  };
+
   return (
     <Animated.View 
       entering={FadeInDown.delay(exerciseIndex * 100).springify()}
@@ -63,29 +86,46 @@ export function ExerciseCard({
           />
         </View>
 
-        {/* Optional Image */}
-        {onImagePress && (
-          <View className="mb-4">
-            <Text className="text-gray-600 text-sm font-medium mb-2">Exercise Photo</Text>
-            <TouchableOpacity
-              onPress={onImagePress}
-              className="aspect-[4/5] bg-gray-100 rounded-xl overflow-hidden"
-            >
-              {image ? (
+        {/* Exercise Image */}
+        <View className="mb-4">
+          <Text className="text-gray-600 text-sm font-medium mb-2">Exercise Photo</Text>
+          <TouchableOpacity
+            onPress={() => {
+              if (exercise.images && exercise.images.length > 0) {
+                setShowEndPosition(!showEndPosition);
+              } else if (onImagePress) {
+                onImagePress();
+              }
+            }}
+            className="aspect-[4/5] bg-gray-100 rounded-xl overflow-hidden"
+          >
+            {exercise.images && exercise.images.length > 0 ? (
+              <>
                 <Image
-                  source={{ uri: image }}
+                  source={getImageSource()}
                   className="w-full h-full"
                   resizeMode="cover"
                 />
-              ) : (
-                <View className="w-full h-full items-center justify-center">
-                  <ImageIcon size={40} color="#6B7280" />
-                  <Text className="text-gray-500 mt-2">Add Photo</Text>
+                <View className="absolute bottom-2 left-2 right-2 bg-black/50 rounded-lg py-2 px-3">
+                  <Text className="text-white text-sm text-center">
+                    {showEndPosition ? 'End Position' : 'Start Position'} (tap to toggle)
+                  </Text>
                 </View>
-              )}
-            </TouchableOpacity>
-          </View>
-        )}
+              </>
+            ) : image ? (
+              <Image
+                source={{ uri: image }}
+                className="w-full h-full"
+                resizeMode="cover"
+              />
+            ) : (
+              <View className="w-full h-full items-center justify-center">
+                <ImageIcon size={40} color="#6B7280" />
+                <Text className="text-gray-500 mt-2">Add Photo</Text>
+              </View>
+            )}
+          </TouchableOpacity>
+        </View>
         
         {/* Exercise Muscle Groups */}
         <View>
@@ -118,7 +158,7 @@ export function ExerciseCard({
           </TouchableOpacity>
         </View>
 
-        {exercise.sets.map((set, setIndex) => (
+        {exercise.sets.map((set: Set, setIndex: number) => (
           <Animated.View
             key={`set-${setIndex}`}
             entering={FadeInDown.springify()}
