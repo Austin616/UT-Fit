@@ -3,7 +3,7 @@ import { View, Text, TextInput, TouchableOpacity, Image } from 'react-native';
 import { X, Plus, ChevronDown, ImageIcon } from 'lucide-react-native';
 import Animated, { FadeInDown, Layout } from 'react-native-reanimated';
 import { Exercise } from '../constants/exercises';
-import { exerciseImages } from '../constants/exerciseImages';
+import { loadExerciseImage } from '../constants/exerciseImages';
 
 interface Set {
   weight: string;
@@ -48,9 +48,7 @@ export function ExerciseCard({
   // Function to get the image source
   const getImageSource = () => {
     if (exercise.images && exercise.images.length > 0) {
-      const imageName = exercise.id;
-      const imageKey = `${imageName}_${showEndPosition ? '1' : '0'}`;
-      return exerciseImages[imageKey] || null;
+      return loadExerciseImage(exercise.id, showEndPosition ? 1 : 0);
     }
     return null;
   };

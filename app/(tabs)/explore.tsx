@@ -1,22 +1,13 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback } from 'react';
 import {
   View,
   Text,
-  ScrollView,
-  TouchableOpacity,
   TextInput,
-  Image,
   RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import {
   Search,
-  Dumbbell,
-  ChevronRight,
-  Heart,
-  Timer,
-  Target,
-  Info,
 } from 'lucide-react-native';
 import Animated, {
   FadeInDown,
@@ -101,14 +92,14 @@ export default function ExploreScreen() {
     <SafeAreaView className="flex-1 bg-gray-50" edges={['left', 'right']}>
       <Animated.ScrollView
         style={contentStyle}
-        className="flex-1"
+        className="flex-1 px-4"
         showsVerticalScrollIndicator={false}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
         }
       >
         {/* Header */}
-        <View className="px-4 pt-2 pb-4">
+        <View className="pt-2 pb-4">
           <Text className="text-2xl font-bold text-gray-900">Explore Exercises</Text>
           <Text className="text-base text-gray-500 mt-1">
             Discover new workouts and techniques

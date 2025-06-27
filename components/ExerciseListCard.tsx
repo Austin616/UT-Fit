@@ -51,23 +51,23 @@ export function ExerciseListCard({ exercise }: ExerciseListCardProps) {
           </View>
         </View>
         
-        <View className="flex-row items-center space-x-4 mb-2">
+        <View className="flex-row items-center gap-2 mb-2">
           {exercise.equipment && (
-            <View className="flex-row items-center">
-              <Dumbbell size={16} className="text-gray-500 mr-1" />
+            <View className="flex-row items-center gap-1">
+              <Dumbbell size={16} className="text-gray-500" />
               <Text className="text-sm text-gray-600 capitalize">{exercise.equipment}</Text>
             </View>
           )}
-          <View className="flex-row items-center">
-            <Target size={16} className="text-gray-500 mr-1" />
-            <Text className="text-sm text-gray-600">{exercise.primaryMuscles.join(', ')}</Text>
+          <View className="flex-row items-center gap-1">
+            <Target size={16} className="text-gray-500" />
+            <Text className="text-sm text-gray-600 capitalize">{exercise.force || 'Unknown'}</Text>
           </View>
         </View>
 
         <View className="flex-row flex-wrap">
           {exercise.primaryMuscles.map((muscle) => (
             <View key={muscle} className="bg-ut_orange bg-opacity-10 rounded-full px-2 py-1 mr-2 mb-2">
-              <Text className="text-xs text-ut_orange capitalize">{muscle}</Text>
+              <Text className="text-xs text-white capitalize">{muscle}</Text>
             </View>
           ))}
           {exercise.secondaryMuscles.map((muscle) => (

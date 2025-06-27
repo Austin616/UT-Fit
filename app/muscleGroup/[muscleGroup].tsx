@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect, useMemo } from 'react';
-import { View, ActivityIndicator, VirtualizedList } from 'react-native';
+import { View, ActivityIndicator, VirtualizedList, Text } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { Exercise, getExercisesByMuscle } from '../../constants/exercises';
 import { ExerciseListCard } from '../../components/ExerciseListCard';
@@ -62,6 +62,11 @@ export default function MuscleGroupPage() {
   return (
     <View className="flex-1 bg-gray-50">
       <Header />
+      <View className="px-4">
+        <View className="pt-2 pb-4">
+          <Text className="text-2xl font-bold text-gray-900 capitalize">Exercises for {muscleGroup}</Text>
+        </View>
+      </View>
       <VirtualizedList
         data={displayedExercises}
         renderItem={renderItem}
