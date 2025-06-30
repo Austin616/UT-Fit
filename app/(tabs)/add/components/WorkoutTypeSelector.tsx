@@ -1,14 +1,13 @@
-import React from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
 import { ChevronDown } from 'lucide-react-native';
-import { WorkoutCategory } from '../constants/workout';
+import { WorkoutCategory } from '../../../../constants/workout';
 
 interface WorkoutTypeSelectorProps {
-  selectedCategory: WorkoutCategory[];
+  selectedCategory: string[];
   onPress: () => void;
 }
 
-export function WorkoutTypeSelector({ selectedCategory, onPress }: WorkoutTypeSelectorProps) {
+export default function WorkoutTypeSelector({ selectedCategory, onPress }: WorkoutTypeSelectorProps) {
   return (
     <View className="mb-6 bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
       <Text className="text-gray-800 text-lg font-semibold mb-3">Workout Type</Text>

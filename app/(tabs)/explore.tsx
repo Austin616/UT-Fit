@@ -19,8 +19,8 @@ import Animated, {
 } from 'react-native-reanimated';
 import { useFocusEffect } from '@react-navigation/native';
 import { exercises, muscleGroups } from '../../constants/exercises';
-import { MuscleGroupCard } from '../../components/MuscleGroupCard';
-import { ExerciseListCard } from '../../components/ExerciseListCard';
+import MuscleGroupCard from './explore/components/MuscleGroupCard';
+import ExerciseListCard from './explore/components/ExerciseListCard';
 
 
 export default function ExploreScreen() {
@@ -135,7 +135,7 @@ export default function ExploreScreen() {
                   key={exercise.id}
                   entering={FadeInDown.delay(index * 100).springify()}
                 >
-                  <ExerciseListCard exercise={exercise} />
+                  <ExerciseListCard exercise={exercise} onPress={() => {}} />
                 </Animated.View>
               ))
             )}

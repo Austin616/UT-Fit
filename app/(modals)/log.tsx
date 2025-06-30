@@ -19,16 +19,37 @@ import Animated, {
 } from 'react-native-reanimated';
 import { WORKOUT_CATEGORIES, MUSCLE_GROUPS, MuscleGroup } from '../../constants/workout';
 import { useWorkout } from '../../hooks/useWorkout';
+import { useWorkoutLogger } from '../../hooks/useWorkoutLogger';
+import { router } from 'expo-router';
+import { Exercise as BaseExercise } from '../../constants/exercises';
+
+// Equipment options
+const EQUIPMENT_OPTIONS = [
+  'Barbell', 'Dumbbell', 'Kettlebell', 'Cable', 'Machine', 'Bodyweight',
+  'Resistance Band', 'Medicine Ball', 'TRX', 'Pull-up Bar', 'None'
+];
+
+// Force options
+const FORCE_OPTIONS = ['Push', 'Pull', 'Static', 'N/A'];
+
+// Mechanic options  
+const MECHANIC_OPTIONS = ['Compound', 'Isolation', 'N/A'];
 
 interface Set {
   weight: string;
   reps: string;
 }
 
-interface Exercise {
-  name: string;
+interface Exercise extends BaseExercise {
   sets: Set[];
   muscleGroups: MuscleGroup[];
+  level: "beginner" | "intermediate" | "advanced";
+  primaryMuscles: string[];
+  secondaryMuscles: string[];
+  category: string;
+  equipment: string;
+  force: string;
+  mechanic: string;
 }
 
 const AnimatedTouchableOpacity = Animated.createAnimatedComponent(TouchableOpacity);
@@ -118,10 +139,25 @@ export default function LogWorkout() {
     deleteSet,
     updateSet,
     updateExerciseName,
+    updateExerciseEquipment,
+    updateExerciseForce,
+    updateExerciseMechanic,
+    updateExerciseLevel,
+    updateExerciseCategory,
     validateWorkout,
     duration,
     setDuration,
   } = useWorkout();
+
+  const { logWorkout } = useWorkoutLogger();
+
+  // Add state for additional pickers
+  const [showEquipmentPicker, setShowEquipmentPicker] = React.useState(false);
+  const [showForcePicker, setShowForcePicker] = React.useState(false);
+  const [showMechanicPicker, setShowMechanicPicker] = React.useState(false);
+  const [showLevelPicker, setShowLevelPicker] = React.useState(false);
+  const [showCategoryPicker2, setShowCategoryPicker2] = React.useState(false);
+  const [currentPickerExerciseIndex, setCurrentPickerExerciseIndex] = React.useState<number | null>(null);
 
   // Animation values
   const pageAnimationProgress = useSharedValue(0);
@@ -152,7 +188,7 @@ export default function LogWorkout() {
     }, [])
   );
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     submitButtonScale.value = withSequence(
       withTiming(0.95, { duration: 100 }),
       withTiming(1, { duration: 100 })
@@ -164,11 +200,25 @@ export default function LogWorkout() {
       return;
     }
 
-    console.log({ 
-      workoutName,
-      categories: selectedCategory,
-      exercises 
-    });
+    try {
+      const result = await logWorkout({
+        name: workoutName,
+        duration: parseInt(duration) || 0,
+        categories: selectedCategory,
+        exercises: exercises,
+        isPublic: false
+      });
+
+      if (result.success) {
+        alert('Workout logged successfully!');
+        router.back();
+      } else {
+        throw result.error;
+      }
+    } catch (error) {
+      alert('Failed to log workout. Please try again.');
+      console.error(error);
+    }
   };
 
   const contentStyle = useAnimatedStyle(() => ({
@@ -328,7 +378,7 @@ export default function LogWorkout() {
                   </View>
 
                   {/* Exercise Muscle Groups */}
-                  <View>
+                  <View className="mb-4">
                     <Text className="text-gray-600 text-sm font-medium mb-2">Target Muscles</Text>
                     <TouchableOpacity
                       onPress={() => {
@@ -344,6 +394,75 @@ export default function LogWorkout() {
                       </Text>
                       <ChevronDown size={20} color="#6B7280" />
                     </TouchableOpacity>
+                  </View>
+
+                  {/* Exercise Level */}
+                  <View className="mb-4">
+                    <Text className="text-gray-600 text-sm font-medium mb-2">Difficulty Level</Text>
+                    <TouchableOpacity
+                      onPress={() => {
+                        setCurrentPickerExerciseIndex(exerciseIndex);
+                        setShowLevelPicker(true);
+                      }}
+                      className="flex-row items-center justify-between p-3 bg-gray-50 rounded-xl"
+                    >
+                      <Text className="text-gray-700 capitalize">
+                        {exercise.level || 'Select level'}
+                      </Text>
+                      <ChevronDown size={20} color="#6B7280" />
+                    </TouchableOpacity>
+                  </View>
+
+                  {/* Exercise Equipment */}
+                  <View className="mb-4">
+                    <Text className="text-gray-600 text-sm font-medium mb-2">Equipment</Text>
+                    <TouchableOpacity
+                      onPress={() => {
+                        setCurrentPickerExerciseIndex(exerciseIndex);
+                        setShowEquipmentPicker(true);
+                      }}
+                      className="flex-row items-center justify-between p-3 bg-gray-50 rounded-xl"
+                    >
+                      <Text className="text-gray-700">
+                        {exercise.equipment || 'Select equipment'}
+                      </Text>
+                      <ChevronDown size={20} color="#6B7280" />
+                    </TouchableOpacity>
+                  </View>
+
+                  {/* Exercise Force & Mechanic */}
+                  <View className="flex-row gap-4 mb-4">
+                    <View className="flex-1">
+                      <Text className="text-gray-600 text-sm font-medium mb-2">Force</Text>
+                      <TouchableOpacity
+                        onPress={() => {
+                          setCurrentPickerExerciseIndex(exerciseIndex);
+                          setShowForcePicker(true);
+                        }}
+                        className="flex-row items-center justify-between p-3 bg-gray-50 rounded-xl"
+                      >
+                        <Text className="text-gray-700">
+                          {exercise.force || 'Force'}
+                        </Text>
+                        <ChevronDown size={16} color="#6B7280" />
+                      </TouchableOpacity>
+                    </View>
+                    
+                    <View className="flex-1">
+                      <Text className="text-gray-600 text-sm font-medium mb-2">Mechanic</Text>
+                      <TouchableOpacity
+                        onPress={() => {
+                          setCurrentPickerExerciseIndex(exerciseIndex);
+                          setShowMechanicPicker(true);
+                        }}
+                        className="flex-row items-center justify-between p-3 bg-gray-50 rounded-xl"
+                      >
+                        <Text className="text-gray-700">
+                          {exercise.mechanic || 'Mechanic'}
+                        </Text>
+                        <ChevronDown size={16} color="#6B7280" />
+                      </TouchableOpacity>
+                    </View>
                   </View>
                 </View>
 
@@ -421,6 +540,150 @@ export default function LogWorkout() {
           MUSCLE_GROUPS,
           exercises[currentExerciseIndex]?.muscleGroups || [],
           (muscleGroup) => toggleExerciseMuscleGroup(currentExerciseIndex, muscleGroup)
+        )}
+
+        {/* Equipment Picker Modal */}
+        {currentPickerExerciseIndex !== null && (
+          <Modal
+            visible={showEquipmentPicker}
+            animationType="slide"
+            transparent={true}
+            onRequestClose={() => setShowEquipmentPicker(false)}
+          >
+            <View className="flex-1 justify-end bg-black/50">
+              <View className="bg-white rounded-t-3xl max-h-96">
+                <View className="p-6 border-b border-gray-200">
+                  <Text className="text-xl font-bold text-center">Select Equipment</Text>
+                </View>
+                <ScrollView className="max-h-80">
+                  {EQUIPMENT_OPTIONS.map((equipment) => (
+                    <TouchableOpacity
+                      key={equipment}
+                      onPress={() => {
+                        updateExerciseEquipment(currentPickerExerciseIndex, equipment);
+                        setShowEquipmentPicker(false);
+                        setCurrentPickerExerciseIndex(null);
+                      }}
+                      className="flex-row items-center justify-between py-3 px-4"
+                    >
+                      <Text className="text-lg">{equipment}</Text>
+                      {exercises[currentPickerExerciseIndex].equipment === equipment && (
+                        <Check size={24} color="#bf5700" />
+                      )}
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
+            </View>
+          </Modal>
+        )}
+
+        {/* Force Picker Modal */}
+        {currentPickerExerciseIndex !== null && (
+          <Modal
+            visible={showForcePicker}
+            animationType="slide"
+            transparent={true}
+            onRequestClose={() => setShowForcePicker(false)}
+          >
+            <View className="flex-1 justify-end bg-black/50">
+              <View className="bg-white rounded-t-3xl">
+                <View className="p-6 border-b border-gray-200">
+                  <Text className="text-xl font-bold text-center">Select Force Type</Text>
+                </View>
+                <ScrollView>
+                  {FORCE_OPTIONS.map((force) => (
+                    <TouchableOpacity
+                      key={force}
+                      onPress={() => {
+                        updateExerciseForce(currentPickerExerciseIndex, force);
+                        setShowForcePicker(false);
+                        setCurrentPickerExerciseIndex(null);
+                      }}
+                      className="flex-row items-center justify-between py-3 px-4"
+                    >
+                      <Text className="text-lg">{force}</Text>
+                      {exercises[currentPickerExerciseIndex].force === force && (
+                        <Check size={24} color="#bf5700" />
+                      )}
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
+            </View>
+          </Modal>
+        )}
+
+        {/* Mechanic Picker Modal */}
+        {currentPickerExerciseIndex !== null && (
+          <Modal
+            visible={showMechanicPicker}
+            animationType="slide"
+            transparent={true}
+            onRequestClose={() => setShowMechanicPicker(false)}
+          >
+            <View className="flex-1 justify-end bg-black/50">
+              <View className="bg-white rounded-t-3xl">
+                <View className="p-6 border-b border-gray-200">
+                  <Text className="text-xl font-bold text-center">Select Mechanic Type</Text>
+                </View>
+                <ScrollView>
+                  {MECHANIC_OPTIONS.map((mechanic) => (
+                    <TouchableOpacity
+                      key={mechanic}
+                      onPress={() => {
+                        updateExerciseMechanic(currentPickerExerciseIndex, mechanic);
+                        setShowMechanicPicker(false);
+                        setCurrentPickerExerciseIndex(null);
+                      }}
+                      className="flex-row items-center justify-between py-3 px-4"
+                    >
+                      <Text className="text-lg">{mechanic}</Text>
+                      {exercises[currentPickerExerciseIndex].mechanic === mechanic && (
+                        <Check size={24} color="#bf5700" />
+                      )}
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
+            </View>
+          </Modal>
+        )}
+
+        {/* Level Picker Modal */}
+        {currentPickerExerciseIndex !== null && (
+          <Modal
+            visible={showLevelPicker}
+            animationType="slide"
+            transparent={true}
+            onRequestClose={() => setShowLevelPicker(false)}
+          >
+            <View className="flex-1 justify-end bg-black/50">
+              <View className="bg-white rounded-t-3xl">
+                <View className="p-6 border-b border-gray-200">
+                  <Text className="text-xl font-bold text-center">Select Difficulty Level</Text>
+                </View>
+                <ScrollView>
+                  {(['beginner', 'intermediate', 'advanced'] as const).map((level) => (
+                    <TouchableOpacity
+                      key={level}
+                      onPress={() => {
+                        updateExerciseLevel(currentPickerExerciseIndex, level);
+                        setShowLevelPicker(false);
+                        setCurrentPickerExerciseIndex(null);
+                      }}
+                      className="flex-row items-center justify-between py-3 px-4"
+                    >
+                      <Text className="text-lg capitalize">{level}</Text>
+                      {exercises[currentPickerExerciseIndex].level === level && (
+                        <Check size={24} color="#bf5700" />
+                      )}
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
+              </View>
+            </View>
+          </Modal>
         )}
       </KeyboardAvoidingView>
     </GestureHandlerRootView>

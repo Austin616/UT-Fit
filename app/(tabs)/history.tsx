@@ -1,10 +1,9 @@
-import { View, Text, ScrollView, TouchableOpacity, Image } from 'react-native';
+import { View, Text, TouchableOpacity } from 'react-native';
 import { useState, useCallback } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Calendar, Clock, Dumbbell, ChevronRight, TrendingUp } from 'lucide-react-native';
 import Animated, { 
   FadeInDown, 
-  FadeIn,
   useSharedValue,
   useAnimatedStyle,
   withTiming,
@@ -156,16 +155,17 @@ export default function HistoryScreen() {
   );
 
   return (
-    <SafeAreaView className="flex-1 bg-gray-50" edges={['left', 'right']}>
+    <SafeAreaView className="flex-1 bg-gray-50" edges={['bottom']}>
       <Animated.ScrollView
         style={contentStyle}
         className="flex-1"
         showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingTop: 16 }}
       >
         {/* Header */}
         <Animated.View 
           entering={FadeInDown.springify()}
-          className="px-4 pt-2 pb-4"
+          className="px-4 pb-4"
         >
           <Text className="text-2xl font-bold text-gray-900">Workout History</Text>
           <Text className="text-base text-gray-500 mt-1">Track your fitness journey</Text>

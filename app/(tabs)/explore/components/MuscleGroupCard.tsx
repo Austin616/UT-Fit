@@ -1,4 +1,3 @@
-import React from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
 import { useRouter } from 'expo-router';
 
@@ -7,7 +6,7 @@ interface MuscleGroupCardProps {
   exerciseCount: number;
 }
 
-export function MuscleGroupCard({ muscleGroup, exerciseCount }: MuscleGroupCardProps) {
+export default function MuscleGroupCard({ muscleGroup, exerciseCount }: MuscleGroupCardProps) {
   const router = useRouter();
 
   return (

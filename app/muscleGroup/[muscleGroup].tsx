@@ -1,8 +1,8 @@
 import { useState, useCallback, useEffect, useMemo } from 'react';
 import { View, ActivityIndicator, VirtualizedList, Text } from 'react-native';
-import { useLocalSearchParams } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { Exercise, getExercisesByMuscle } from '../../constants/exercises';
-import { ExerciseListCard } from '../../components/ExerciseListCard';
+import ExerciseListCard from '../(tabs)/explore/components/ExerciseListCard';
 import Header from '../(modals)/Header';
 
 const ITEMS_PER_PAGE = 20;
@@ -57,7 +57,7 @@ export default function MuscleGroupPage() {
   const getItem = (_data: Exercise[], index: number) => displayedExercises[index];
   const getItemCount = () => displayedExercises.length;
   const keyExtractor = (item: Exercise) => item.id;
-  const renderItem = ({ item }: { item: Exercise }) => <ExerciseListCard exercise={item} />;
+  const renderItem = ({ item }: { item: Exercise }) => <ExerciseListCard exercise={item} onPress={() => {router.push(`/exercise/${item.id}`)}} />;
 
   return (
     <View className="flex-1 bg-gray-50">

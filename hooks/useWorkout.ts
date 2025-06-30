@@ -1,15 +1,22 @@
 import { useState, useCallback } from 'react';
 import { WorkoutCategory, MuscleGroup } from '../constants/workout';
+import { Exercise as BaseExercise } from '../constants/exercises';
 
 export interface Set {
   weight: string;
   reps: string;
 }
 
-export interface Exercise {
-  name: string;
+export interface Exercise extends BaseExercise {
   sets: Set[];
   muscleGroups: MuscleGroup[];
+  level: "beginner" | "intermediate" | "advanced";
+  primaryMuscles: string[];
+  secondaryMuscles: string[];
+  category: string;
+  equipment: string;
+  force: string;
+  mechanic: string;
 }
 
 export interface WorkoutState {
@@ -20,9 +27,19 @@ export interface WorkoutState {
 }
 
 export function useWorkout(initialExercises: Exercise[] = [{ 
+  id: `temp-${Date.now()}`,
   name: '', 
   sets: [{ weight: '', reps: '' }], 
-  muscleGroups: [] 
+  muscleGroups: [],
+  level: "beginner",
+  primaryMuscles: [],
+  secondaryMuscles: [],
+  instructions: [],
+  images: [],
+  category: 'strength',
+  equipment: '',
+  force: '',
+  mechanic: ''
 }]) {
   const [workoutName, setWorkoutName] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<WorkoutCategory[]>([]);
@@ -58,9 +75,19 @@ export function useWorkout(initialExercises: Exercise[] = [{
 
   const addExercise = useCallback(() => {
     setExercises(prev => [...prev, { 
+      id: `temp-${Date.now()}`,
       name: '', 
       sets: [{ weight: '', reps: '' }], 
-      muscleGroups: [] 
+      muscleGroups: [],
+      level: "beginner",
+      primaryMuscles: [],
+      secondaryMuscles: [],
+      instructions: [],
+      images: [],
+      category: 'strength',
+      equipment: '',
+      force: '',
+      mechanic: ''
     }]);
   }, []);
 
@@ -115,6 +142,46 @@ export function useWorkout(initialExercises: Exercise[] = [{
     setExercises(prev => {
       const newExercises = [...prev];
       newExercises[exerciseIndex].name = name;
+      return newExercises;
+    });
+  }, []);
+
+  const updateExerciseEquipment = useCallback((exerciseIndex: number, equipment: string) => {
+    setExercises(prev => {
+      const newExercises = [...prev];
+      newExercises[exerciseIndex].equipment = equipment;
+      return newExercises;
+    });
+  }, []);
+
+  const updateExerciseForce = useCallback((exerciseIndex: number, force: string) => {
+    setExercises(prev => {
+      const newExercises = [...prev];
+      newExercises[exerciseIndex].force = force;
+      return newExercises;
+    });
+  }, []);
+
+  const updateExerciseMechanic = useCallback((exerciseIndex: number, mechanic: string) => {
+    setExercises(prev => {
+      const newExercises = [...prev];
+      newExercises[exerciseIndex].mechanic = mechanic;
+      return newExercises;
+    });
+  }, []);
+
+  const updateExerciseLevel = useCallback((exerciseIndex: number, level: "beginner" | "intermediate" | "advanced") => {
+    setExercises(prev => {
+      const newExercises = [...prev];
+      newExercises[exerciseIndex].level = level;
+      return newExercises;
+    });
+  }, []);
+
+  const updateExerciseCategory = useCallback((exerciseIndex: number, category: string) => {
+    setExercises(prev => {
+      const newExercises = [...prev];
+      newExercises[exerciseIndex].category = category;
       return newExercises;
     });
   }, []);
@@ -188,6 +255,11 @@ export function useWorkout(initialExercises: Exercise[] = [{
     deleteSet,
     updateSet,
     updateExerciseName,
+    updateExerciseEquipment,
+    updateExerciseForce,
+    updateExerciseMechanic,
+    updateExerciseLevel,
+    updateExerciseCategory,
     validateWorkout,
   };
 } 

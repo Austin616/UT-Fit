@@ -20,16 +20,20 @@ import Animated, {
 } from 'react-native-reanimated';
 import * as ImagePicker from 'expo-image-picker';
 import { MuscleGroup, WORKOUT_CATEGORIES, MUSCLE_GROUPS } from '../../constants/workout';
-import { WorkoutTypeSelector } from '../../components/WorkoutTypeSelector';
+import WorkoutTypeSelector from '../(tabs)/add/components/WorkoutTypeSelector';
 import { PickerModal } from '../../components/PickerModal';
-import { ExerciseCard } from '../../components/ExerciseCard';
+import ExerciseCard from '../(tabs)/explore/components/ExerciseCard';
 import { useWorkout } from '../../hooks/useWorkout';
 import { useFocusEffect } from '@react-navigation/native';
+import { Exercise as BaseExercise } from '../../constants/exercises';
 
-interface Exercise {
+type ExerciseLevel = "beginner" | "intermediate" | "advanced";
+
+interface Exercise extends Omit<BaseExercise, 'level'> {
   name: string;
   sets: { weight: string; reps: string }[];
   muscleGroups: MuscleGroup[];
+  level: ExerciseLevel;
 }
 
 interface Slide {
@@ -57,7 +61,21 @@ export default function PostWorkout() {
     {
       image: '',
       caption: '',
-      exercise: { name: '', sets: [{ weight: '', reps: '' }], muscleGroups: [] },
+      exercise: {
+        id: `temp-${Date.now()}`,
+        name: '',
+        sets: [{ weight: '', reps: '' }],
+        muscleGroups: [],
+        level: 'beginner',
+        primaryMuscles: [],
+        secondaryMuscles: [],
+        instructions: [],
+        images: [],
+        category: 'strength',
+        equipment: '',
+        force: '',
+        mechanic: ''
+      },
     },
   ]);
   const [currentSlideIndex, setCurrentSlideIndex] = useState<number | null>(null);
@@ -171,7 +189,21 @@ export default function PostWorkout() {
       {
         image: '',
         caption: '',
-        exercise: { name: '', sets: [{ weight: '', reps: '' }], muscleGroups: [] },
+        exercise: {
+          id: `temp-${Date.now()}`,
+          name: '',
+          sets: [{ weight: '', reps: '' }],
+          muscleGroups: [],
+          level: 'beginner',
+          primaryMuscles: [],
+          secondaryMuscles: [],
+          instructions: [],
+          images: [],
+          category: 'strength',
+          equipment: '',
+          force: '',
+          mechanic: ''
+        },
       },
     ]);
   };

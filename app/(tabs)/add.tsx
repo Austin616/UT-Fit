@@ -2,7 +2,7 @@ import React, { useCallback } from 'react';
 import { View, Text, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter, useNavigation } from 'expo-router';
+import { useRouter } from 'expo-router';
 import Animated, { 
   useSharedValue, 
   useAnimatedStyle, 
@@ -14,7 +14,6 @@ import { useFocusEffect } from '@react-navigation/native';
 
 export default function AddLanding() {
   const router = useRouter();
-  const navigation = useNavigation();
   const animationProgress = useSharedValue(0);
 
   // Animation values for each card

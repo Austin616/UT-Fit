@@ -1,19 +1,18 @@
 import * as React from 'react';
-import { View, Text, TouchableOpacity, Image, ActivityIndicator } from 'react-native';
-import { Heart, Target, Dumbbell } from 'lucide-react-native';
-import { Exercise } from '../constants/exercises';
-import { useRouter } from 'expo-router';
-import { loadExerciseImage } from '../constants/exerciseImages';
+import { View, Text, TouchableOpacity, Image, ActivityIndicator, ImageSourcePropType } from 'react-native';
+import { Target, Dumbbell } from 'lucide-react-native';
+import { Exercise } from '../../../../constants/exercises';
+import { loadExerciseImage } from '../../../../constants/exerciseImages';
 
 interface ExerciseListCardProps {
   exercise: Exercise;
+  onPress: () => void;
 }
 
-export function ExerciseListCard({ exercise }: ExerciseListCardProps) {
-  const router = useRouter();
+export default function ExerciseListCard({ exercise, onPress }: ExerciseListCardProps) {
   const [imageLoading, setImageLoading] = React.useState(true);
 
-  const getImageSource = () => {
+  const getImageSource = (): ImageSourcePropType | null => {
     if (exercise.images && exercise.images.length > 0) {
       return loadExerciseImage(exercise.id, 0);
     }
@@ -22,13 +21,13 @@ export function ExerciseListCard({ exercise }: ExerciseListCardProps) {
 
   return (
     <TouchableOpacity
-      onPress={() => router.push(`/exercise/${exercise.id}`)}
+      onPress={onPress}
       className="bg-white rounded-2xl shadow-sm border border-gray-100 mb-4 overflow-hidden"
     >
       {exercise.images && exercise.images.length > 0 && (
         <View className="w-full h-48 bg-gray-100">
           <Image
-            source={getImageSource()}
+            source={getImageSource() || undefined}
             className="w-full h-full"
             resizeMode="cover"
             onLoadStart={() => setImageLoading(true)}
