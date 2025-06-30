@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, FlatList } from 'react-native';
+import { View, Text, TextInput, FlatList } from 'react-native';
 import { Search } from 'lucide-react-native';
 import BaseModalScreen from './BaseModalScreen';
 import { Exercise } from '../constants/exercises';
