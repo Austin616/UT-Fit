@@ -1,12 +1,14 @@
-import { memo } from 'react';
+import { memo, useState } from 'react';
 import { View, Image, TouchableOpacity, Text } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Trophy, MessageCircle, Map, Settings, Edit3 } from 'lucide-react-native';
+import { Trophy, MessageCircle, Map, Settings, Edit3, Heart } from 'lucide-react-native';
 import { usePathname, useRouter } from 'expo-router';
+import { FavoritesScreen } from '../screens';
 
 function Header() {
   const pathname = usePathname();
   const router = useRouter();
+  const [showFavorites, setShowFavorites] = useState(false);
 
   const renderLeftSide = () => {
     if (pathname === '/profile') {
@@ -35,6 +37,12 @@ function Header() {
       case '/':
         return (
           <>
+            <TouchableOpacity 
+              onPress={() => setShowFavorites(true)}
+              className="p-1"
+            >
+              <Heart size={24} color="#EF4444" strokeWidth={1.5} />
+            </TouchableOpacity>
             <TouchableOpacity onPress={() => router.push('/map')}>
               <Map size={24} color="black" strokeWidth={1.5} />
             </TouchableOpacity>
@@ -103,14 +111,21 @@ function Header() {
   }
 
   return (
-    <SafeAreaView edges={['top']} className="bg-white border-b border-gray-100">
-      <View className="flex-row items-center justify-between px-4 pb-4">
-        {renderLeftSide()}
-        <View className="flex-row items-center gap-5">
-          {getHeaderIcons()}
+    <>
+      <SafeAreaView edges={['top']} className="bg-white border-b border-gray-100">
+        <View className="flex-row items-center justify-between px-4 pb-4">
+          {renderLeftSide()}
+          <View className="flex-row items-center gap-5">
+            {getHeaderIcons()}
+          </View>
         </View>
-      </View>
-    </SafeAreaView>
+      </SafeAreaView>
+      {/* Favorites Modal */}
+      <FavoritesScreen
+        visible={showFavorites}
+        onClose={() => setShowFavorites(false)}
+      />
+    </>
   );
 }
 

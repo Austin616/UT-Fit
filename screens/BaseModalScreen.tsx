@@ -7,6 +7,8 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
+  StyleSheet,
+  Dimensions,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { X } from 'lucide-react-native';
@@ -19,6 +21,8 @@ import Animated, {
 } from 'react-native-reanimated';
 import { GestureHandlerRootView, PanGestureHandler } from 'react-native-gesture-handler';
 
+const { height: SCREEN_HEIGHT } = Dimensions.get('window');
+
 interface BaseModalScreenProps {
   visible: boolean;
   onClose: () => void;
@@ -26,7 +30,7 @@ interface BaseModalScreenProps {
   children: React.ReactNode;
   showCloseButton?: boolean;
   enableSwipeToClose?: boolean;
-  maxHeight?: string;
+  maxHeight?: string | number;
 }
 
 export default function BaseModalScreen({
@@ -36,21 +40,28 @@ export default function BaseModalScreen({
   children,
   showCloseButton = true,
   enableSwipeToClose = true,
-  maxHeight = "90%"
+  maxHeight = SCREEN_HEIGHT * 0.9
 }: BaseModalScreenProps) {
-  const translateY = useSharedValue(1000);
+  const translateY = useSharedValue(SCREEN_HEIGHT);
   const opacity = useSharedValue(0);
 
   React.useEffect(() => {
     if (visible) {
-      opacity.value = withTiming(1, { duration: 200 });
+      opacity.value = withTiming(1, { duration: 150 });
       translateY.value = withSpring(0, {
-        damping: 15,
-        stiffness: 150,
+        damping: 20,
+        stiffness: 200,
+        mass: 1,
+        velocity: 1
       });
     } else {
       opacity.value = withTiming(0, { duration: 150 });
-      translateY.value = withTiming(1000, { duration: 200 });
+      translateY.value = withSpring(SCREEN_HEIGHT, {
+        damping: 20,
+        stiffness: 200,
+        mass: 1,
+        velocity: 1
+      });
     }
   }, [visible]);
 
@@ -70,34 +81,51 @@ export default function BaseModalScreen({
 
   if (!visible) return null;
 
+  const modalHeight = typeof maxHeight === 'string' ? 
+    SCREEN_HEIGHT * (parseInt(maxHeight) / 100) : 
+    maxHeight;
+
   return (
     <Modal
       transparent
       visible={visible}
       animationType="none"
       onRequestClose={onClose}
+      statusBarTranslucent
     >
-      <GestureHandlerRootView style={{ flex: 1 }}>
+      <GestureHandlerRootView style={[StyleSheet.absoluteFill, { zIndex: 1000 }]}>
         <Animated.View 
-          style={[animatedBackdropStyle]} 
-          className="flex-1 bg-black/50 justify-end"
+          style={[animatedBackdropStyle, StyleSheet.absoluteFill]} 
+          className="bg-black/50"
         >
           <TouchableOpacity 
-            className="flex-1" 
+            style={StyleSheet.absoluteFill}
             activeOpacity={1} 
             onPress={onClose}
           />
           
           <PanGestureHandler onGestureEvent={handleSwipeGesture}>
             <Animated.View
-              style={[animatedModalStyle, { maxHeight }]}
-              className="bg-white rounded-t-3xl"
+              style={[
+                animatedModalStyle,
+                {
+                  height: modalHeight,
+                  zIndex: 1001,
+                  position: 'absolute',
+                  bottom: 0,
+                  left: 0,
+                  right: 0,
+                  backgroundColor: 'white',
+                  borderTopLeftRadius: 24,
+                  borderTopRightRadius: 24,
+                }
+              ]}
             >
               <KeyboardAvoidingView
                 behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-                className="flex-1"
+                style={{ flex: 1, zIndex: 1002 }}
               >
-                <SafeAreaView className="flex-1" edges={['left', 'right']}>
+                <SafeAreaView style={{ flex: 1 }} edges={['left', 'right']}>
                   {/* Handle Bar */}
                   {enableSwipeToClose && (
                     <View className="w-12 h-1 bg-gray-300 rounded-full self-center mt-2 mb-4" />

@@ -1,8 +1,9 @@
 import * as React from 'react';
 import { View, Text, TouchableOpacity, Image, ActivityIndicator, ImageSourcePropType } from 'react-native';
-import { Target, Dumbbell } from 'lucide-react-native';
+import { Target, Dumbbell, Heart } from 'lucide-react-native';
 import { Exercise } from '../../../../constants/exercises';
 import { loadExerciseImage } from '../../../../constants/exerciseImages';
+import { useFavorites } from '../../../../hooks/useFavorites';
 
 interface ExerciseListCardProps {
   exercise: Exercise;
@@ -11,6 +12,7 @@ interface ExerciseListCardProps {
 
 export default function ExerciseListCard({ exercise, onPress }: ExerciseListCardProps) {
   const [imageLoading, setImageLoading] = React.useState(true);
+  const { isFavorited, toggleFavorite } = useFavorites();
 
   const getImageSource = (): ImageSourcePropType | null => {
     if (exercise.images && exercise.images.length > 0) {
@@ -19,13 +21,20 @@ export default function ExerciseListCard({ exercise, onPress }: ExerciseListCard
     return null;
   };
 
+  const handleFavoritePress = async (e: any) => {
+    e.stopPropagation(); // Prevent card press when heart is pressed
+    await toggleFavorite(exercise.id);
+  };
+
+  const isExerciseFavorited = isFavorited(exercise.id);
+
   return (
     <TouchableOpacity
       onPress={onPress}
       className="bg-white rounded-2xl shadow-sm border border-gray-100 mb-4 overflow-hidden"
     >
       {exercise.images && exercise.images.length > 0 && (
-        <View className="w-full h-48 bg-gray-100">
+        <View className="w-full h-48 bg-gray-100 relative">
           <Image
             source={getImageSource() || undefined}
             className="w-full h-full"
@@ -38,11 +47,37 @@ export default function ExerciseListCard({ exercise, onPress }: ExerciseListCard
               <ActivityIndicator size="large" color="#bf5700" />
             </View>
           )}
+          {/* Favorite Heart Icon */}
+          <TouchableOpacity
+            onPress={handleFavoritePress}
+            className="absolute top-3 right-3 w-10 h-10 bg-white/90 rounded-full items-center justify-center shadow-sm"
+            activeOpacity={0.7}
+          >
+            <Heart 
+              size={20} 
+              color={isExerciseFavorited ? "#EF4444" : "#6B7280"} 
+              fill={isExerciseFavorited ? "#EF4444" : "none"}
+            />
+          </TouchableOpacity>
         </View>
       )}
       <View className="p-4">
         <View className="flex-row justify-between items-center mb-2">
-          <Text className="text-lg font-semibold text-gray-900">{exercise.name}</Text>
+          <Text className="text-lg font-semibold text-gray-900 flex-1">{exercise.name}</Text>
+          {/* Heart icon for exercises without images */}
+          {(!exercise.images || exercise.images.length === 0) && (
+            <TouchableOpacity
+              onPress={handleFavoritePress}
+              className="ml-3 p-2"
+              activeOpacity={0.7}
+            >
+              <Heart 
+                size={20} 
+                color={isExerciseFavorited ? "#EF4444" : "#6B7280"} 
+                fill={isExerciseFavorited ? "#EF4444" : "none"}
+              />
+            </TouchableOpacity>
+          )}
           <View className="flex-row items-center space-x-2">
             <View className="bg-gray-100 rounded-full px-2 py-1">
               <Text className="text-xs text-gray-600 capitalize">{exercise.level}</Text>
