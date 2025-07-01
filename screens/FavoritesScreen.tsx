@@ -22,7 +22,6 @@ export default function FavoritesScreen({ visible, onClose }: FavoritesScreenPro
     favorites.includes(exercise.id)
     
   );
-  console.log(favoriteExercises);
 
   const handleExercisePress = (exerciseId: string) => {
     onClose();

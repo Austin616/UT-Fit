@@ -26,24 +26,10 @@ export interface WorkoutState {
   duration: string;
 }
 
-export function useWorkout(initialExercises: Exercise[] = [{ 
-  id: `temp-${Date.now()}`,
-  name: '', 
-  sets: [{ weight: '', reps: '' }], 
-  muscleGroups: [],
-  level: "beginner",
-  primaryMuscles: [],
-  secondaryMuscles: [],
-  instructions: [],
-  images: [],
-  category: 'strength',
-  equipment: '',
-  force: '',
-  mechanic: ''
-}]) {
+export function useWorkout() {
   const [workoutName, setWorkoutName] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<WorkoutCategory[]>([]);
-  const [exercises, setExercises] = useState<Exercise[]>(initialExercises);
+  const [exercises, setExercises] = useState<Exercise[]>([]);
   const [duration, setDuration] = useState('');
   const [showCategoryPicker, setShowCategoryPicker] = useState(false);
   const [showMuscleGroupPicker, setShowMuscleGroupPicker] = useState(false);
@@ -73,21 +59,10 @@ export function useWorkout(initialExercises: Exercise[] = [{
     });
   }, []);
 
-  const addExercise = useCallback(() => {
-    setExercises(prev => [...prev, { 
-      id: `temp-${Date.now()}`,
-      name: '', 
-      sets: [{ weight: '', reps: '' }], 
-      muscleGroups: [],
-      level: "beginner",
-      primaryMuscles: [],
-      secondaryMuscles: [],
-      instructions: [],
-      images: [],
-      category: 'strength',
-      equipment: '',
-      force: '',
-      mechanic: ''
+  const addExercise = useCallback((exercise: Exercise) => {
+    setExercises(prev => [...prev, {
+      ...exercise,
+      sets: [{ weight: '', reps: '' }]
     }]);
   }, []);
 
