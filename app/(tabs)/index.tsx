@@ -4,6 +4,7 @@ import {
   ScrollView,
   TouchableOpacity,
   Image,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -29,7 +30,9 @@ import Animated, {
   Easing,
 } from 'react-native-reanimated';
 import { useFocusEffect } from '@react-navigation/native';
-import { useCallback } from 'react';
+import { useCallback, useState } from 'react';
+import { useWorkoutLogger } from '../../hooks/useWorkoutLogger';
+import { format } from 'date-fns';
 
 // Mock data
 const RECENT_WORKOUTS = [
@@ -123,20 +126,39 @@ const SOCIAL_FEED = [
 
 export default function HomeScreen() {
   const router = useRouter();
+  const [recentWorkouts, setRecentWorkouts] = useState<any[]>([]);
+  const [loadingWorkouts, setLoadingWorkouts] = useState(true);
+  const { getWorkoutHistory } = useWorkoutLogger();
 
   // Animation values
   const pageAnimationProgress = useSharedValue(0);
+
+  const fetchRecentWorkouts = useCallback(async () => {
+    try {
+      const result = await getWorkoutHistory(2); // Get only 2 most recent workouts
+      if (result.success && result.workouts) {
+        setRecentWorkouts(result.workouts);
+      }
+    } catch (error) {
+      console.error('Error fetching recent workouts:', error);
+    } finally {
+      setLoadingWorkouts(false);
+    }
+  }, [getWorkoutHistory]);
 
   useFocusEffect(
     useCallback(() => {
       // Reset animations
       pageAnimationProgress.value = 0;
+      setLoadingWorkouts(true);
 
-      // Start animations
+      // Start animations and fetch data
       pageAnimationProgress.value = withTiming(1, {
         duration: 800,
         easing: Easing.out(Easing.cubic),
       });
+
+      fetchRecentWorkouts();
 
       return () => {
         // Reset animations when screen loses focus
@@ -248,6 +270,81 @@ export default function HomeScreen() {
     </Animated.View>
   );
 
+  const renderRecentWorkout = (workout: any, index: number) => (
+    <Animated.View 
+      entering={FadeInDown.delay(index * 100).springify()}
+      className="bg-white rounded-2xl shadow-sm border border-gray-100 mb-4 overflow-hidden"
+    >
+      <TouchableOpacity 
+        className="p-4" 
+        activeOpacity={0.7}
+        onPress={() => {
+          // Navigate to workout details in the future
+        }}
+      >
+        {/* Header */}
+        <View className="flex-row justify-between items-center mb-3">
+          <View className="flex-row items-center">
+            <Dumbbell size={18} color="#bf5700" />
+            <Text className="text-lg font-semibold ml-2">{workout.name}</Text>
+          </View>
+          <ChevronRight size={20} color="#6B7280" />
+        </View>
+
+        {/* Details */}
+        <View className="flex-row items-center mb-3">
+          <View className="flex-row items-center mr-4">
+            <Calendar size={16} color="#6B7280" />
+            <Text className="text-gray-600 ml-1">
+              {format(new Date(workout.created_at), 'MMM d, yyyy')}
+            </Text>
+          </View>
+          <View className="flex-row items-center">
+            <Clock size={16} color="#6B7280" />
+            <Text className="text-gray-600 ml-1">{workout.duration} min</Text>
+          </View>
+        </View>
+
+        {/* Categories */}
+        <View className="flex-row flex-wrap gap-2 mb-3">
+          {workout.categories.map((category: string, i: number) => (
+            <Animated.View 
+              key={i}
+              entering={FadeInDown.delay(i * 50).springify()}
+              className="bg-ut_orange bg-opacity-10 px-3 py-1 rounded-full"
+            >
+              <Text className="text-white text-sm">{category}</Text>
+            </Animated.View>
+          ))}
+        </View>
+
+        {/* Exercises */}
+        <View className="flex-row flex-wrap gap-2 mb-3">
+          {workout.exercises.map((exercise: any, i: number) => (
+            <Animated.View 
+              key={i}
+              entering={FadeInDown.delay(i * 50).springify()}
+              className="bg-gray-50 px-3 py-1 rounded-full"
+            >
+              <Text className="text-gray-700 text-sm">{exercise.name}</Text>
+            </Animated.View>
+          ))}
+        </View>
+
+        {/* Exercise Count */}
+        <Animated.View 
+          entering={FadeInDown.delay(200).springify()}
+          className="flex-row items-center mt-1"
+        >
+          <TrendingUp size={16} color="#059669" />
+          <Text className="text-green-600 ml-1 text-sm">
+            {workout.exercises.length} exercise{workout.exercises.length !== 1 ? 's' : ''}
+          </Text>
+        </Animated.View>
+      </TouchableOpacity>
+    </Animated.View>
+  );
+
   return (
     <SafeAreaView className="flex-1 bg-gray-50" edges={['left', 'right']}>
       <Animated.ScrollView
@@ -261,7 +358,7 @@ export default function HomeScreen() {
           className="px-4 pt-2 pb-6"
         >
           <Text className="text-2xl font-bold text-gray-900">Welcome Back!</Text>
-          <Text className="text-base text-gray-500 mt-1">Ready for another workout?</Text>
+          <Text className="text-base text-gray-500 mt-1">Let&apos;s crush today&apos;s workout</Text>
         </Animated.View>
 
         {/* Quick Actions */}
@@ -299,38 +396,23 @@ export default function HomeScreen() {
               <ChevronRight size={20} color="#bf5700" />
             </TouchableOpacity>
           </View>
-          {RECENT_WORKOUTS.map((workout, index) => (
-            <Animated.View
-              key={workout.id}
-              entering={FadeInDown.delay(index * 100).springify()}
-              className="bg-white rounded-2xl shadow-sm border border-gray-100 mb-4 p-4"
-            >
-              <View className="flex-row justify-between items-center mb-3">
-                <View className="flex-row items-center">
-                  <Dumbbell size={18} color="#bf5700" />
-                  <Text className="text-lg font-semibold ml-2">{workout.name}</Text>
-                </View>
-                <ChevronRight size={20} color="#6B7280" />
+
+          {loadingWorkouts ? (
+            <View className="py-8 items-center">
+              <ActivityIndicator size="large" color="#bf5700" />
+            </View>
+          ) : recentWorkouts.length === 0 ? (
+            <View className="py-8 items-center">
+              <Text className="text-gray-500 text-lg">No workouts yet</Text>
+              <Text className="text-gray-400 mt-2">Start logging your workouts!</Text>
+            </View>
+          ) : (
+            recentWorkouts.map((workout, index) => (
+              <View key={workout.id}>
+                {renderRecentWorkout(workout, index)}
               </View>
-              <View className="flex-row items-center mb-3">
-                <View className="flex-row items-center mr-4">
-                  <Calendar size={16} color="#6B7280" />
-                  <Text className="text-gray-600 ml-1">{workout.date}</Text>
-                </View>
-                <View className="flex-row items-center">
-                  <Clock size={16} color="#6B7280" />
-                  <Text className="text-gray-600 ml-1">{workout.duration}</Text>
-                </View>
-              </View>
-              <View className="flex-row flex-wrap gap-2">
-                {workout.exercises.map((exercise, i) => (
-                  <View key={i} className="bg-gray-50 px-3 py-1 rounded-full">
-                    <Text className="text-gray-700 text-sm">{exercise}</Text>
-                  </View>
-                ))}
-              </View>
-            </Animated.View>
-          ))}
+            ))
+          )}
         </View>
 
         {/* Social Feed */}

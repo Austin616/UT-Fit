@@ -1,4 +1,4 @@
-import { View, Text, TouchableOpacity } from 'react-native';
+import { View, Text, TouchableOpacity, ActivityIndicator, RefreshControl } from 'react-native';
 import { useState, useCallback } from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Calendar, Clock, Dumbbell, ChevronRight, TrendingUp } from 'lucide-react-native';
@@ -12,66 +12,54 @@ import Animated, {
   withSequence,
 } from 'react-native-reanimated';
 import { useFocusEffect } from '@react-navigation/native';
-
-// Mock data - replace with real data later
-const MOCK_WORKOUTS = [
-  {
-    id: '1',
-    name: 'Morning Push Day',
-    date: '2024-03-10',
-    duration: '45 min',
-    exercises: ['Bench Press', 'Shoulder Press', 'Tricep Extensions'],
-    category: 'Strength',
-    progress: '+5 lbs on bench'
-  },
-  {
-    id: '2',
-    name: 'Leg Day',
-    date: '2024-03-09',
-    duration: '60 min',
-    exercises: ['Squats', 'Romanian Deadlifts', 'Leg Press'],
-    category: 'Strength',
-    progress: 'New PR on squats'
-  },
-  {
-    id: '3',
-    name: 'Cardio Session',
-    date: '2024-03-08',
-    duration: '30 min',
-    exercises: ['Treadmill Run', 'Jump Rope', 'Burpees'],
-    category: 'Cardio',
-    progress: 'Improved pace'
-  },
-  {
-    id: '4',
-    name: 'Back & Biceps',
-    date: '2024-03-07',
-    duration: '50 min',
-    exercises: ['Pull-ups', 'Barbell Rows', 'Bicep Curls'],
-    category: 'Strength',
-    progress: '+2 pull-ups'
-  },
-];
+import { useWorkoutLogger } from '../../hooks/useWorkoutLogger';
+import { format } from 'date-fns';
 
 type TimeFilter = 'week' | 'month' | 'year';
 
 export default function HistoryScreen() {
   const [timeFilter, setTimeFilter] = useState<TimeFilter>('week');
+  const [workouts, setWorkouts] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const { getWorkoutHistory } = useWorkoutLogger();
 
   // Animation values
   const pageAnimationProgress = useSharedValue(0);
   const filterScale = useSharedValue(1);
 
+  const fetchWorkouts = useCallback(async () => {
+    try {
+      const result = await getWorkoutHistory(50); // Get last 50 workouts
+      if (result.success && result.workouts) {
+        setWorkouts(result.workouts);
+      }
+    } catch (error) {
+      console.error('Error fetching workouts:', error);
+    } finally {
+      setLoading(false);
+    }
+  }, [getWorkoutHistory]);
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await fetchWorkouts();
+    setRefreshing(false);
+  }, [fetchWorkouts]);
+
   useFocusEffect(
     useCallback(() => {
       // Reset animations
       pageAnimationProgress.value = 0;
+      setLoading(true);
 
-      // Start animations
+      // Start animations and fetch data
       pageAnimationProgress.value = withTiming(1, {
         duration: 800,
         easing: Easing.out(Easing.cubic),
       });
+
+      fetchWorkouts();
 
       return () => {
         // Reset animations when screen loses focus
@@ -92,7 +80,7 @@ export default function HistoryScreen() {
     setTimeFilter(filter);
   };
 
-  const renderWorkoutCard = (workout: typeof MOCK_WORKOUTS[0], index: number) => (
+  const renderWorkoutCard = (workout: any, index: number) => (
     <Animated.View 
       entering={FadeInDown.delay(index * 100).springify()}
       className="bg-white rounded-2xl shadow-sm border border-gray-100 mb-4 overflow-hidden"
@@ -121,34 +109,51 @@ export default function HistoryScreen() {
         <View className="flex-row items-center mb-3">
           <View className="flex-row items-center mr-4">
             <Calendar size={16} color="#6B7280" />
-            <Text className="text-gray-600 ml-1">{workout.date}</Text>
+            <Text className="text-gray-600 ml-1">
+              {format(new Date(workout.created_at), 'MMM d, yyyy')}
+            </Text>
           </View>
           <View className="flex-row items-center">
             <Clock size={16} color="#6B7280" />
-            <Text className="text-gray-600 ml-1">{workout.duration}</Text>
+            <Text className="text-gray-600 ml-1">{workout.duration} min</Text>
           </View>
+        </View>
+
+        {/* Categories */}
+        <View className="flex-row flex-wrap gap-2 mb-3">
+          {workout.categories.map((category: string, i: number) => (
+            <Animated.View 
+              key={i}
+              entering={FadeInDown.delay(i * 50).springify()}
+              className="bg-ut_orange bg-opacity-10 px-3 py-1 rounded-full"
+            >
+              <Text className="text-white text-sm">{category}</Text>
+            </Animated.View>
+          ))}
         </View>
 
         {/* Exercises */}
         <View className="flex-row flex-wrap gap-2 mb-3">
-          {workout.exercises.map((exercise, i) => (
+          {workout.exercises.map((exercise: any, i: number) => (
             <Animated.View 
               key={i}
               entering={FadeInDown.delay(i * 50).springify()}
               className="bg-gray-50 px-3 py-1 rounded-full"
             >
-              <Text className="text-gray-700 text-sm">{exercise}</Text>
+              <Text className="text-gray-700 text-sm">{exercise.name}</Text>
             </Animated.View>
           ))}
         </View>
 
-        {/* Progress */}
+        {/* Exercise Count */}
         <Animated.View 
           entering={FadeInDown.delay(200).springify()}
           className="flex-row items-center mt-1"
         >
           <TrendingUp size={16} color="#059669" />
-          <Text className="text-green-600 ml-1 text-sm">{workout.progress}</Text>
+          <Text className="text-green-600 ml-1 text-sm">
+            {workout.exercises.length} exercise{workout.exercises.length !== 1 ? 's' : ''}
+          </Text>
         </Animated.View>
       </TouchableOpacity>
     </Animated.View>
@@ -161,6 +166,9 @@ export default function HistoryScreen() {
         className="flex-1"
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingTop: 16 }}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
       >
         {/* Header */}
         <Animated.View 
@@ -198,11 +206,22 @@ export default function HistoryScreen() {
 
         {/* Workout List */}
         <View className="px-4">
-          {MOCK_WORKOUTS.map((workout) => (
-            <View key={workout.id}>
-              {renderWorkoutCard(workout, Number(workout.id) - 1)}
+          {loading ? (
+            <View className="py-8 items-center">
+              <ActivityIndicator size="large" color="#bf5700" />
             </View>
-          ))}
+          ) : workouts.length === 0 ? (
+            <View className="py-8 items-center">
+              <Text className="text-gray-500 text-lg">No workouts found</Text>
+              <Text className="text-gray-400 mt-2">Start logging your workouts!</Text>
+            </View>
+          ) : (
+            workouts.map((workout, index) => (
+              <View key={workout.id}>
+                {renderWorkoutCard(workout, index)}
+              </View>
+            ))
+          )}
           
           {/* Add some bottom padding */}
           <View className="h-4" />
