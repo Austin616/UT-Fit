@@ -14,6 +14,7 @@ import Animated, {
 import { useFocusEffect } from '@react-navigation/native';
 import { useWorkoutLogger } from '../../hooks/useWorkoutLogger';
 import { format } from 'date-fns';
+import { useRouter } from 'expo-router';
 
 type TimeFilter = 'week' | 'month' | 'year';
 
@@ -23,6 +24,7 @@ export default function HistoryScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const { getWorkoutHistory } = useWorkoutLogger();
+  const router = useRouter();
 
   // Animation values
   const pageAnimationProgress = useSharedValue(0);
@@ -89,11 +91,10 @@ export default function HistoryScreen() {
         className="p-4" 
         activeOpacity={0.7}
         onPress={() => {
-          // Add animation for press feedback
-          filterScale.value = withSequence(
-            withTiming(0.95, { duration: 100 }),
-            withTiming(1, { duration: 100 })
-          );
+          router.push({
+            pathname: '/(modals)/workout',
+            params: { id: workout.id }
+          });
         }}
       >
         {/* Header */}

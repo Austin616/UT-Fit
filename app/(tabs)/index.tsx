@@ -279,7 +279,10 @@ export default function HomeScreen() {
         className="p-4" 
         activeOpacity={0.7}
         onPress={() => {
-          // Navigate to workout details in the future
+          router.push({
+            pathname: '/(modals)/workout',
+            params: { id: workout.id }
+          });
         }}
       >
         {/* Header */}

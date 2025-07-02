@@ -23,76 +23,96 @@ interface WorkoutData {
 export function useWorkoutLogger() {
   const { user } = useAuth();
 
-  const logWorkout = useCallback(async (workoutData: WorkoutData) => {
-    try {
-      if (!user) throw new Error('User must be logged in to log a workout');
+  const logWorkout = useCallback(async (workout: {
+    name: string;
+    duration: number;
+    categories: string[];
+    exercises: {
+      id: string;
+      name: string;
+      sets: { weight: string; reps: string; }[];
+      equipment?: string;
+      level?: string;
+      mechanic?: string;
+      force?: string;
+      primaryMuscles: string[];
+      secondaryMuscles?: string[];
+      category?: string;
+    }[];
+    isPublic: boolean;
+  }) => {
+    if (!user) return { success: false, error: new Error('Not authenticated') };
 
-      // Start a Supabase transaction
-      const { data: workout, error: workoutError } = await supabase
+    try {
+      // Insert workout
+      const { data: workoutData, error: workoutError } = await supabase
         .from('workouts')
         .insert({
           user_id: user.id,
-          name: workoutData.name,
-          duration: workoutData.duration,
-          categories: workoutData.categories,
-          is_public: workoutData.isPublic ?? false
+          name: workout.name,
+          duration: workout.duration,
+          categories: workout.categories,
+          is_public: workout.isPublic
         })
         .select()
         .single();
 
       if (workoutError) throw workoutError;
 
-      // Insert exercises
-      for (let i = 0; i < workoutData.exercises.length; i++) {
-        const exercise = workoutData.exercises[i];
-        
+      // Insert exercises and sets
+      const exercisePromises = workout.exercises.map(async (exercise, index) => {
+        // Insert exercise
         const { data: exerciseData, error: exerciseError } = await supabase
           .from('exercises')
           .insert({
-            workout_id: workout.id,
+            workout_id: workoutData.id,
             name: exercise.name,
             muscle_groups: exercise.primaryMuscles,
-            order_in_workout: i,
+            order_in_workout: index,
             level: exercise.level,
             primary_muscles: exercise.primaryMuscles,
             secondary_muscles: exercise.secondaryMuscles,
-            category: exercise.category,
-            equipment: exercise.equipment,
-            force: exercise.force,
-            mechanic: exercise.mechanic
+            category: exercise.category || 'strength',
+            equipment: exercise.equipment || '',
+            force: exercise.force || '',
+            mechanic: exercise.mechanic || ''
           })
           .select()
           .single();
 
         if (exerciseError) throw exerciseError;
 
-        // Insert sets for each exercise
-        const sets = exercise.sets.map((set: Set, index: number) => ({
-          exercise_id: exerciseData.id,
-          weight: parseFloat(set.weight) || 0,
-          reps: parseInt(set.reps) || 0,
-          order_in_exercise: index
-        }));
-
+        // Insert sets
         const { error: setsError } = await supabase
           .from('sets')
-          .insert(sets);
+          .insert(
+            exercise.sets.map((set, setIndex) => ({
+              exercise_id: exerciseData.id,
+              weight: parseFloat(set.weight) || 0,
+              reps: parseInt(set.reps) || 0,
+              order_in_exercise: setIndex
+            }))
+          );
 
         if (setsError) throw setsError;
-      }
 
-      return { success: true, workoutId: workout.id };
+        return exerciseData;
+      });
+
+      await Promise.all(exercisePromises);
+
+      return { success: true, workout: workoutData };
     } catch (error) {
       console.error('Error logging workout:', error);
       return { success: false, error };
     }
   }, [user]);
 
-  const getWorkoutHistory = useCallback(async (limit = 10, offset = 0) => {
-    try {
-      if (!user) throw new Error('User must be logged in to view workout history');
+  const getWorkoutHistory = useCallback(async (limit?: number) => {
+    if (!user) return { success: false, error: new Error('Not authenticated') };
 
-      const { data: workouts, error: workoutsError } = await supabase
+    try {
+      let query = supabase
         .from('workouts')
         .select(`
           *,
@@ -102,10 +122,24 @@ export function useWorkoutLogger() {
           )
         `)
         .eq('user_id', user.id)
-        .order('created_at', { ascending: false })
-        .range(offset, offset + limit - 1);
+        .order('created_at', { ascending: false });
 
-      if (workoutsError) throw workoutsError;
+      if (limit) {
+        query = query.limit(limit);
+      }
+
+      const { data, error } = await query;
+
+      if (error) throw error;
+
+      // Transform the data to match the expected format
+      const workouts = data.map(workout => ({
+        ...workout,
+        exercises: workout.exercises.map((exercise: any) => ({
+          ...exercise,
+          sets: exercise.sets
+        }))
+      }));
 
       return { success: true, workouts };
     } catch (error) {
@@ -114,8 +148,43 @@ export function useWorkoutLogger() {
     }
   }, [user]);
 
+  const getWorkoutById = useCallback(async (workoutId: string) => {
+    if (!user) return { success: false, error: new Error('Not authenticated') };
+
+    try {
+      const { data, error } = await supabase
+        .from('workouts')
+        .select(`
+          *,
+          exercises (
+            *,
+            sets (*)
+          )
+        `)
+        .eq('id', workoutId)
+        .single();
+
+      if (error) throw error;
+
+      // Transform the data to match the expected format
+      const workout = {
+        ...data,
+        exercises: data.exercises.map((exercise: any) => ({
+          ...exercise,
+          sets: exercise.sets
+        }))
+      };
+
+      return { success: true, workout };
+    } catch (error) {
+      console.error('Error fetching workout:', error);
+      return { success: false, error };
+    }
+  }, [user]);
+
   return {
     logWorkout,
-    getWorkoutHistory
+    getWorkoutHistory,
+    getWorkoutById
   };
 } 
